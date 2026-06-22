@@ -1,0 +1,37 @@
+# =============================================================
+#  PostgreSQL klaster — CloudNativePG Cluster CR
+#  Placeholderi ${...} popunjava skripta 05 (envsubst).
+#  CNPG automatski kreira StatefulSet, servise -rw/-ro/-r, PVC,
+#  streaming replikaciju i automatski failover.
+# =============================================================
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: keycloak-postgres
+  namespace: ${NAMESPACE}
+spec:
+  instances: ${PG_INSTANCES}
+
+  storage:
+    size: ${PG_STORAGE_SIZE}
+##STORAGECLASS##
+
+  bootstrap:
+    initdb:
+      database: ${PG_DATABASE}
+      owner: ${PG_USERNAME}
+      secret:
+        name: keycloak-db-secret
+
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "1"
+      memory: "1Gi"
+
+  postgresql:
+    parameters:
+      max_connections: "200"
+      shared_buffers: "256MB"

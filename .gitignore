@@ -1,0 +1,10 @@
+*.kubeconfig
+kubeconfig
+*.key
+*.crt
+*.pem
+/rendered/
+*.log
+.vscode/
+.idea/
+*.swp

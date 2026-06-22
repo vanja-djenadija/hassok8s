@@ -1,0 +1,50 @@
+# =============================================================
+#  Keycloak klaster — Keycloak CR
+#  Placeholderi ${...} popunjava skripta 05 (envsubst).
+#  Operator kreira Deployment/StatefulSet, servis, Infinispan
+#  clustering (DNS_PING) i health probe.
+# =============================================================
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: Keycloak
+metadata:
+  name: keycloak-unibl
+  namespace: ${NAMESPACE}
+spec:
+  instances: ${KEYCLOAK_INSTANCES}
+
+  db:
+    vendor: postgres
+    host: keycloak-postgres-rw      # CNPG primary servis (read-write)
+    database: ${PG_DATABASE}
+    usernameSecret:
+      name: keycloak-db-secret
+      key: username
+    passwordSecret:
+      name: keycloak-db-secret
+      key: password
+
+  hostname:
+    hostname: ${KEYCLOAK_HOSTNAME}
+
+  http:
+    tlsSecret: keycloak-tls
+
+  # TLS terminira Ingress; Keycloak je iza proxyja.
+  proxy:
+    headers: xforwarded
+
+  startOptimized: false
+
+  additionalOptions:
+    - name: metrics-enabled
+      value: "true"
+    - name: health-enabled
+      value: "true"
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2"
+      memory: "2Gi"

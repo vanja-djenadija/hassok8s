@@ -1,0 +1,54 @@
+# =============================================================
+#  Realm import — KeycloakRealmImport CR
+#  Definiše realm, role i test klijent kao kod (IaC).
+#  Izmjene kroz admin UI se ne sinhronizuju nazad u ovaj fajl.
+# =============================================================
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: KeycloakRealmImport
+metadata:
+  name: realm-import
+  namespace: ${NAMESPACE}
+spec:
+  keycloakCRName: keycloak-unibl
+  realm:
+    realm: ${REALM_NAME}
+    displayName: "${REALM_DISPLAY_NAME}"
+    enabled: true
+
+    bruteForceProtected: true
+    permanentLockout: false
+    maxFailureWaitSeconds: 900
+    failureFactor: 5
+    loginWithEmailAllowed: true
+    duplicateEmailsAllowed: false
+
+    accessTokenLifespan: 300
+    ssoSessionIdleTimeout: 1800
+    ssoSessionMaxLifespan: 28800
+
+    passwordPolicy: "length(8) and digits(1) and notUsername"
+
+    roles:
+      realm:
+        - name: STUDENT_REDOVNI
+          description: "Redovni student"
+        - name: STUDENT_VANREDNI
+          description: "Vanredni student"
+        - name: NASTAVNIK
+          description: "Nastavno osoblje"
+        - name: SARADNIK
+          description: "Saradnik u nastavi"
+        - name: ADMINISTRATIVNO_OSOBLJE
+          description: "Administrativno osoblje"
+
+    clients:
+      - clientId: test-app
+        name: "Test aplikacija"
+        enabled: true
+        publicClient: true
+        standardFlowEnabled: true
+        directAccessGrantsEnabled: false
+        redirectUris:
+          - "https://${KEYCLOAK_HOSTNAME}/*"
+        webOrigins:
+          - "+"
