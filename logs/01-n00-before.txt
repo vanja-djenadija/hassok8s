@@ -1,0 +1,3 @@
+root@n00:/home/vanja/hassok8s# microk8s kubectl get nodes
+NAME   STATUS   ROLES    AGE   VERSION
+n00    Ready    <none>   13m   v1.29.15

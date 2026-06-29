@@ -1,0 +1,37 @@
+root@n00:/home/vanja/hassok8s# microk8s kubectl get nodes
+NAME   STATUS   ROLES    AGE     VERSION
+n00    Ready    <none>   29m     v1.29.15
+n01    Ready    <none>   2m28s   v1.29.15
+n02    Ready    <none>   32s     v1.29.15
+root@n00:/home/vanja/hassok8s# microk8s status
+microk8s is running
+high-availability: yes
+  datastore master nodes: 78.28.135.130:19001 78.28.135.131:19001 78.28.135.132:19001
+  datastore standby nodes: none
+addons:
+  enabled:
+    dns                  # (core) CoreDNS
+    ha-cluster           # (core) Configure high availability on the current node
+    helm                 # (core) Helm - the package manager for Kubernetes
+    helm3                # (core) Helm 3 - the package manager for Kubernetes
+  disabled:
+    cert-manager         # (core) Cloud native certificate management
+    cis-hardening        # (core) Apply CIS K8s hardening
+    community            # (core) The community addons repository
+    dashboard            # (core) The Kubernetes dashboard
+    gpu                  # (core) Alias to nvidia add-on
+    host-access          # (core) Allow Pods connecting to Host services smoothly
+    hostpath-storage     # (core) Storage class; allocates storage from host directory
+    ingress              # (core) Ingress controller for external access
+    kube-ovn             # (core) An advanced network fabric for Kubernetes
+    mayastor             # (core) OpenEBS MayaStor
+    metallb              # (core) Loadbalancer for your Kubernetes cluster
+    metrics-server       # (core) K8s Metrics Server for API access to service metrics
+    minio                # (core) MinIO object storage
+    nvidia               # (core) NVIDIA hardware (GPU and network) support
+    observability        # (core) A lightweight observability stack for logs, traces and metrics
+    prometheus           # (core) Prometheus operator for monitoring and logging
+    rbac                 # (core) Role-Based Access Control for authorisation
+    registry             # (core) Private image registry exposed on localhost:32000
+    rook-ceph            # (core) Distributed Ceph storage using Rook
+    storage              # (core) Alias to hostpath-storage add-on, deprecated

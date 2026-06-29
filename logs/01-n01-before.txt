@@ -1,0 +1,3 @@
+root@n01:~/hassok8s# microk8s kubectl get nodes
+NAME   STATUS   ROLES    AGE     VERSION
+n01    Ready    <none>   6m51s   v1.29.15
