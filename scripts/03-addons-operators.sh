@@ -38,16 +38,28 @@ ${KC} rollout status deployment/cnpg-controller-manager -n cnpg-system --timeout
 
 echo "==> [5/5] Keycloak operator (v${KEYCLOAK_VERSION})"
 BASE="https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/${KEYCLOAK_VERSION}/kubernetes"
+
+# CRD-ovi se instaliraju klaster-globalno (nisu vezani za namespace).
 ${KC} apply -f "${BASE}/keycloaks.k8s.keycloak.org-v1.yml"
 ${KC} apply -f "${BASE}/keycloakrealmimports.k8s.keycloak.org-v1.yml"
-${KC} apply -f "${BASE}/kubernetes.yml"
-# Keycloak operator se instalira u podrazumijevani (default) namespace.
-${KC} rollout status deployment/keycloak-operator --timeout=180s
+
+# Operator se instalira u namespace koji nadgleda. Po zvaničnoj dokumentaciji
+# to je namespace 'keycloak'; kreiramo ga unaprijed (skripta 04 ga koristi dalje).
+${KC} create namespace "${NAMESPACE}" --dry-run=client -o yaml | ${KC} apply -f -
+${KC} -n "${NAMESPACE}" apply -f "${BASE}/kubernetes.yml"
+
+# Pošto operator nije u podrazumijevanom namespace-u, subjekt ClusterRoleBinding-a
+# mora pokazivati na izabrani namespace (zahtjev iz zvanične dokumentacije).
+${KC} patch clusterrolebinding keycloak-operator-clusterrole-binding \
+  --type='json' \
+  -p="[{\"op\": \"replace\", \"path\": \"/subjects/0/namespace\", \"value\":\"${NAMESPACE}\"}]"
+${KC} rollout restart -n "${NAMESPACE}" deployment/keycloak-operator
+${KC} rollout status -n "${NAMESPACE}" deployment/keycloak-operator --timeout=180s
 
 echo ""
 echo "==> Provjera"
 ${KC} get pods -n cnpg-system
-${KC} get pods -l app.kubernetes.io/name=keycloak-operator
+${KC} get pods -n "${NAMESPACE}"
 
 echo ""
 echo "DONE: dodaci i operatori su aktivni."
