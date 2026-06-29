@@ -1,0 +1,18 @@
+root@n00:/home/vanja/hassok8s# microk8s kubectl get pods -n cnpg-system
+NAME                                       READY   STATUS    RESTARTS        AGE
+cnpg-controller-manager-7576bdb56f-khjqr   1/1     Running   2 (5m10s ago)   9m1s
+root@n00:/home/vanja/hassok8s# microk8s kubectl get pods -n keycloak
+NAME                                READY   STATUS    RESTARTS   AGE
+keycloak-operator-7d897867b-kqwxs   1/1     Running   0          8m52s
+root@n00:/home/vanja/hassok8s# microk8s kubectl get crd | grep -E "cnpg|keycloak"
+backups.postgresql.cnpg.io                            2026-06-29T11:34:14Z
+clusterimagecatalogs.postgresql.cnpg.io               2026-06-29T11:44:02Z
+clusters.postgresql.cnpg.io                           2026-06-29T11:44:02Z
+imagecatalogs.postgresql.cnpg.io                      2026-06-29T11:44:02Z
+keycloakrealmimports.k8s.keycloak.org                 2026-06-29T12:22:41Z
+keycloaks.k8s.keycloak.org                            2026-06-29T12:22:40Z
+poolers.postgresql.cnpg.io                            2026-06-29T11:44:02Z
+scheduledbackups.postgresql.cnpg.io                   2026-06-29T11:44:02Z
+root@n00:/home/vanja/hassok8s# microk8s kubectl get storageclass
+NAME                          PROVISIONER            RECLAIMPOLICY   VOLUMEBINDINGMODE      ALLOWVOLUMEEXPANSION   AGE
+microk8s-hostpath (default)   microk8s.io/hostpath   Delete          WaitForFirstConsumer   false                  58m
