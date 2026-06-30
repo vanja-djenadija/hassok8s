@@ -12,6 +12,13 @@ metadata:
 spec:
   instances: ${KEYCLOAK_INSTANCES}
 
+  bootstrapAdmin:
+    user:
+      secret: keycloak-admin-secret
+
+  ingress:
+    enabled: false
+
   db:
     vendor: postgres
     host: keycloak-postgres-rw      # CNPG primary servis (read-write)

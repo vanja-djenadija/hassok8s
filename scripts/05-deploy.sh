@@ -19,6 +19,8 @@ export NAMESPACE PG_INSTANCES PG_STORAGE_SIZE PG_DATABASE PG_USERNAME
 export KEYCLOAK_INSTANCES KEYCLOAK_HOSTNAME REALM_NAME REALM_DISPLAY_NAME
 
 RENDER_DIR="$(mktemp -d)"
+trap 'rm -rf "${RENDER_DIR}"' EXIT
+
 echo "==> Renderovanje manifesta"
 
 render() { envsubst < "$1" > "$2"; }
@@ -38,17 +40,45 @@ render "${ROOT_DIR}/templates/ingress/ingress.yaml"          "${RENDER_DIR}/ingr
 
 echo "==> [1/4] PostgreSQL klaster"
 ${KC} apply -f "${RENDER_DIR}/cnpg-cluster.yaml"
+
 echo "    Čekanje da PostgreSQL bude zdrav (do 5 min)..."
-${KC} wait --for=condition=Ready cluster/keycloak-postgres \
-  -n "${NAMESPACE}" --timeout=300s
+PHASE=""
+READY="0"
+
+for i in $(seq 1 60); do
+  PHASE="$(${KC} get cluster/keycloak-postgres -n "${NAMESPACE}" \
+    -o jsonpath='{.status.phase}' 2>/dev/null || echo "")"
+
+  READY="$(${KC} get cluster/keycloak-postgres -n "${NAMESPACE}" \
+    -o jsonpath='{.status.readyInstances}' 2>/dev/null || echo "0")"
+
+  echo "    [$i/60] phase='${PHASE}' readyInstances='${READY}/${PG_INSTANCES}'"
+
+  if [[ "${PHASE}" == "Cluster in healthy state" && "${READY}" == "${PG_INSTANCES}" ]]; then
+    echo "    PostgreSQL klaster je zdrav (${READY}/${PG_INSTANCES} instanci)."
+    break
+  fi
+
+  sleep 5
+done
+
+if [[ "${PHASE}" != "Cluster in healthy state" || "${READY}" != "${PG_INSTANCES}" ]]; then
+  echo "GREŠKA: PostgreSQL klaster nije postao zdrav u zadatom vremenu." >&2
+  echo "Provjera:" >&2
+  echo "  microk8s kubectl get cluster keycloak-postgres -n ${NAMESPACE}" >&2
+  echo "  microk8s kubectl get pods -n ${NAMESPACE} -l cnpg.io/cluster=keycloak-postgres -o wide" >&2
+  echo "  microk8s kubectl describe cluster keycloak-postgres -n ${NAMESPACE}" >&2
+  exit 1
+fi
 
 echo "==> [2/4] Keycloak klaster"
 ${KC} apply -f "${RENDER_DIR}/keycloak-cr.yaml"
-echo "    Čekanje na Keycloak podove (JVM warmup, do 8 min)..."
+
+echo "    Čekanje da Keycloak bude spreman (JVM warmup, do 8 min)..."
 sleep 20
-${KC} wait --for=condition=Ready pod \
-  -l "app.kubernetes.io/managed-by=keycloak-operator" \
-  -n "${NAMESPACE}" --timeout=480s || true
+
+${KC} wait --for=condition=Ready keycloak/keycloak-unibl \
+  -n "${NAMESPACE}" --timeout=480s
 
 echo "==> [3/4] Realm import"
 ${KC} apply -f "${RENDER_DIR}/realm-import-cr.yaml"
@@ -56,11 +86,10 @@ ${KC} apply -f "${RENDER_DIR}/realm-import-cr.yaml"
 echo "==> [4/4] Ingress"
 ${KC} apply -f "${RENDER_DIR}/ingress.yaml"
 
-rm -rf "${RENDER_DIR}"
-
 echo ""
 echo "==> Stanje resursa"
 ${KC} get all -n "${NAMESPACE}"
+
 echo ""
 echo "============================================================"
 echo " DEPLOY ZAVRŠEN"

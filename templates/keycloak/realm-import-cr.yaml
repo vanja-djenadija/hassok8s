@@ -52,3 +52,16 @@ spec:
           - "https://${KEYCLOAK_HOSTNAME}/*"
         webOrigins:
           - "+"
+    users:
+      - username: test.student
+        enabled: true
+        emailVerified: true
+        firstName: Test
+        lastName: Student
+        email: test.student@etfbl.net
+        credentials:
+          - type: password
+            value: "TestStudent123"
+            temporary: false
+        realmRoles:
+          - STUDENT_REDOVNI

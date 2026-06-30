@@ -30,6 +30,7 @@ ${KC} create namespace "${NAMESPACE}" \
 
 echo "==> Secret: kredencijali baze (keycloak-db-secret)"
 ${KC} create secret generic keycloak-db-secret \
+  --type=kubernetes.io/basic-auth \
   --from-literal=username="${PG_USERNAME}" \
   --from-literal=password="${DB_PASS}" \
   -n "${NAMESPACE}" \
@@ -37,6 +38,7 @@ ${KC} create secret generic keycloak-db-secret \
 
 echo "==> Secret: admin kredencijali (keycloak-admin-secret)"
 ${KC} create secret generic keycloak-admin-secret \
+  --type=kubernetes.io/basic-auth \
   --from-literal=username="${KEYCLOAK_ADMIN_USER}" \
   --from-literal=password="${ADMIN_PASS}" \
   -n "${NAMESPACE}" \
@@ -45,6 +47,8 @@ ${KC} create secret generic keycloak-admin-secret \
 echo "==> TLS certifikat (self-signed) za ${KEYCLOAK_HOSTNAME}"
 # Za produkciju zamijeniti važećim certifikatom (cert-manager / Let's Encrypt).
 TMP_DIR="$(mktemp -d)"
+trap 'rm -rf "${TMP_DIR}"' EXIT
+
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
   -keyout "${TMP_DIR}/tls.key" \
   -out "${TMP_DIR}/tls.crt" \
@@ -56,8 +60,6 @@ ${KC} create secret tls keycloak-tls \
   --key="${TMP_DIR}/tls.key" \
   -n "${NAMESPACE}" \
   --dry-run=client -o yaml | ${KC} apply -f -
-
-rm -rf "${TMP_DIR}"
 
 echo ""
 echo "==> Provjera"
