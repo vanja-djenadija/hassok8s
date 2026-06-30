@@ -3,130 +3,135 @@
 #  TEST — Primary PostgreSQL pod failure (CloudNativePG failover)
 #
 #  Primary metric:
-#    Client-visible write downtime through the CNPG read-write service,
-#    measured as:
-#      first successful INSERT that started after failure injection
-#      minus
-#      last successful INSERT that completed before failure injection
+#    Client-visible write downtime through the CloudNativePG -rw service.
+#
+#  Definition:
+#    downtime = first successful INSERT started after failure injection
+#               - last successful INSERT completed before failure injection
 #
 #  Methodological safeguards:
-#    - each run is isolated by run_id
-#    - writer must be stable before failure injection
-#    - writer keeps running until recovery is observed or timeout expires
-#    - writer is stopped before committed rows are counted
+#    - each run is isolated with run_id
+#    - writer pod must be Ready before logs are read
+#    - writer must produce PRE_OK_REQUIRED successful writes before injection
+#    - writer runs continuously during failover and recovery
+#    - writer is stopped before rows are counted
 #    - committed rows are counted only for this run_id
-#    - run is marked VALID only if measurement and consistency checks pass
+#    - a run is VALID only when successful writes == committed rows
 #
 #  Outputs:
 #    logs/tests/pg-failover-<RUN_ID>/
-#      writer.raw.log, writes.csv, state.csv, events.csv,
-#      summary.csv, summary.txt
-#
-#  Run on n00 after deployment, while the cluster is healthy.
+#      writer.raw.log
+#      writes.csv
+#      state.csv
+#      events.csv
+#      summary.csv
+#      summary.txt
 # =============================================================
 set -euo pipefail
 
-# --- Parameters ------------------------------------------------
+# --- Parameters ----------------------------------------------
 NS="${NS:-keycloak}"
 CLUSTER="${CLUSTER:-keycloak-postgres}"
 KC="${KC:-microk8s kubectl}"
 WRITER_IMAGE="${WRITER_IMAGE:-postgres:16}"
+
 DB_USER="${DB_USER:-keycloak}"
 DB_NAME="${DB_NAME:-keycloak}"
 DB_SECRET="${DB_SECRET:-keycloak-db-secret}"
 RW_HOST="${RW_HOST:-${CLUSTER}-rw.${NS}.svc.cluster.local}"
 
-MAX_WAIT="${MAX_WAIT:-600}"                 # max wait for client-side recovery, seconds
-OBSERVE_AFTER="${OBSERVE_AFTER:-60}"        # observation after first post-failure OK, seconds
-WRITER_DURATION="${WRITER_DURATION:-900}"   # hard upper bound for writer lifetime, seconds
-PRE_OK_REQUIRED="${PRE_OK_REQUIRED:-10}"    # stable OK writes required before injection
-WRITE_INTERVAL="${WRITE_INTERVAL:-1}"       # seconds between attempts
-CONNECT_TIMEOUT="${CONNECT_TIMEOUT:-2}"     # psql connect_timeout, seconds
+MAX_WAIT="${MAX_WAIT:-600}"
+OBSERVE_AFTER="${OBSERVE_AFTER:-60}"
+WRITER_DURATION="${WRITER_DURATION:-900}"
+PRE_OK_REQUIRED="${PRE_OK_REQUIRED:-10}"
+WRITE_INTERVAL="${WRITE_INTERVAL:-1}"
+CONNECT_TIMEOUT="${CONNECT_TIMEOUT:-2}"
 PSQL_STATEMENT_TIMEOUT_MS="${PSQL_STATEMENT_TIMEOUT_MS:-3000}"
 
-# --- Output directory -----------------------------------------
+# --- Resolve output directory --------------------------------
 SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="${SCRIPT_PATH}"
 while [[ "${ROOT_DIR}" != "/" && ! -f "${ROOT_DIR}/config.env" ]]; do
   ROOT_DIR="$(dirname "${ROOT_DIR}")"
 done
-[[ -f "${ROOT_DIR}/config.env" ]] || ROOT_DIR="$(cd "${SCRIPT_PATH}/../.." && pwd)"
+if [[ ! -f "${ROOT_DIR}/config.env" ]]; then
+  ROOT_DIR="$(cd "${SCRIPT_PATH}/../.." && pwd)"
+fi
 
 RUN_ID="$(date +%Y%m%d-%H%M%S)"
 OUT="${ROOT_DIR}/logs/tests/pg-failover-${RUN_ID}"
 mkdir -p "${OUT}"
 
 STATE_CSV="${OUT}/state.csv"
-EVENTS_CSV="${OUT}/events.csv"
 WRITES_CSV="${OUT}/writes.csv"
 WRITER_RAW_LOG="${OUT}/writer.raw.log"
+EVENTS_CSV="${OUT}/events.csv"
 SUMMARY_CSV="${OUT}/summary.csv"
 SUMMARY_TXT="${OUT}/summary.txt"
+WRITER_LOG_ERR="${OUT}/writer.logs.err"
+
 WRITER_POD="pg-writer-${RUN_ID}"
 WATCH_PID=""
-WRITER_STOPPED="false"
-T_INJECT=""
 
-log() { echo "[$(date +%H:%M:%S)] $*"; }
-event() { echo "$(date +%s.%N),$1,$2" >> "${EVENTS_CSV}"; }
+log() {
+  echo "[$(date +%H:%M:%S)] $*"
+}
+
+event() {
+  echo "$(date +%s.%N),$1,$2" >> "${EVENTS_CSV}"
+}
 
 cleanup() {
   if [[ -n "${WATCH_PID}" ]]; then
     kill "${WATCH_PID}" >/dev/null 2>&1 || true
-    wait "${WATCH_PID}" >/dev/null 2>&1 || true
   fi
   ${KC} delete pod "${WRITER_POD}" -n "${NS}" --ignore-not-found --grace-period=0 --force >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
-fail() {
-  echo "ERROR: $*" >&2
-  exit 1
+safe_writer_logs() {
+  ${KC} logs "${WRITER_POD}" -n "${NS}" 2>/dev/null || true
 }
 
 run_psql() {
   local pod_name="$1"
   local sql="$2"
+
   ${KC} run "${pod_name}" -n "${NS}" --image="${WRITER_IMAGE}" \
     --restart=Never --rm -i --quiet \
     --env="PGPASSWORD=${PGPASS}" --command -- \
     psql "host=${RW_HOST} user=${DB_USER} dbname=${DB_NAME} connect_timeout=10" \
-    -v ON_ERROR_STOP=1 -tAc "${sql}"
+    -v ON_ERROR_STOP=1 \
+    -v statement_timeout="${PSQL_STATEMENT_TIMEOUT_MS}" \
+    -tAc "${sql}"
 }
 
-require_number() {
-  local name="$1"
-  local value="$2"
-  [[ "${value}" =~ ^[0-9]+$ ]] || fail "${name} must be a non-negative integer, got '${value}'."
-}
-
-require_number MAX_WAIT "${MAX_WAIT}"
-require_number OBSERVE_AFTER "${OBSERVE_AFTER}"
-require_number WRITER_DURATION "${WRITER_DURATION}"
-require_number PRE_OK_REQUIRED "${PRE_OK_REQUIRED}"
-require_number CONNECT_TIMEOUT "${CONNECT_TIMEOUT}"
-require_number PSQL_STATEMENT_TIMEOUT_MS "${PSQL_STATEMENT_TIMEOUT_MS}"
-
-command -v awk >/dev/null || fail "awk is required."
-command -v base64 >/dev/null || fail "base64 is required."
-
-# --- 0. Preflight --------------------------------------------
+# --- 0. Verify cluster health --------------------------------
 log "Checking initial cluster state..."
-INIT_PHASE="$(${KC} get cluster/${CLUSTER} -n "${NS}" -o jsonpath='{.status.phase}' 2>/dev/null || echo '')"
-INIT_PRIMARY="$(${KC} get cluster/${CLUSTER} -n "${NS}" -o jsonpath='{.status.currentPrimary}' 2>/dev/null || echo '')"
-INIT_READY="$(${KC} get cluster/${CLUSTER} -n "${NS}" -o jsonpath='{.status.readyInstances}' 2>/dev/null || echo '0')"
-PG_INSTANCES="$(${KC} get cluster/${CLUSTER} -n "${NS}" -o jsonpath='{.spec.instances}' 2>/dev/null || echo '3')"
+
+INIT_PHASE="$(${KC} get cluster/"${CLUSTER}" -n "${NS}" -o jsonpath='{.status.phase}' 2>/dev/null || echo '')"
+INIT_PRIMARY="$(${KC} get cluster/"${CLUSTER}" -n "${NS}" -o jsonpath='{.status.currentPrimary}' 2>/dev/null || echo '')"
+INIT_READY="$(${KC} get cluster/"${CLUSTER}" -n "${NS}" -o jsonpath='{.status.readyInstances}' 2>/dev/null || echo '0')"
+PG_INSTANCES="$(${KC} get cluster/"${CLUSTER}" -n "${NS}" -o jsonpath='{.spec.instances}' 2>/dev/null || echo '3')"
 
 if [[ -z "${INIT_PRIMARY}" || "${INIT_PHASE}" != "Cluster in healthy state" || "${INIT_READY}" != "${PG_INSTANCES}" ]]; then
-  fail "cluster is not healthy before test (phase='${INIT_PHASE}', primary='${INIT_PRIMARY}', ready='${INIT_READY}/${PG_INSTANCES}')."
+  echo "ERROR: cluster is not healthy before the test." >&2
+  echo "phase='${INIT_PHASE}', primary='${INIT_PRIMARY}', ready='${INIT_READY}/${PG_INSTANCES}'" >&2
+  exit 1
 fi
+
 log "Cluster healthy. Primary: ${INIT_PRIMARY} (${INIT_READY}/${PG_INSTANCES})."
 
+# --- 1. Read DB password -------------------------------------
 PGPASS="$(${KC} get secret "${DB_SECRET}" -n "${NS}" -o jsonpath='{.data.password}' 2>/dev/null | base64 -d || echo '')"
-[[ -n "${PGPASS}" ]] || fail "cannot read DB password from secret '${DB_SECRET}'."
+if [[ -z "${PGPASS}" ]]; then
+  echo "ERROR: cannot read DB password from secret ${DB_SECRET}." >&2
+  exit 1
+fi
 
-# --- 1. Prepare isolated table -------------------------------
+# --- 2. Prepare isolated probe table -------------------------
 log "Preparing probe table for run_id=${RUN_ID}..."
+
 SETUP_SQL="
 CREATE TABLE IF NOT EXISTS failover_probe (
   id bigserial PRIMARY KEY,
@@ -148,13 +153,21 @@ for attempt in 1 2 3; do
   log "  setup attempt ${attempt} failed, retrying..."
   sleep 3
 done
-[[ "${SETUP_OK}" == "true" ]] || fail "could not prepare probe table. Check DB connectivity to ${RW_HOST}."
+
+if [[ "${SETUP_OK}" != "true" ]]; then
+  echo "ERROR: could not prepare probe table after retries." >&2
+  echo "Check DB connectivity: ${RW_HOST}" >&2
+  exit 1
+fi
+
 log "Probe table ready."
 
-# --- 2. Start writer -----------------------------------------
+# --- 3. Start writer pod -------------------------------------
 log "Starting writer pod ${WRITER_POD} against ${RW_HOST}..."
-WRITER_SCRIPT=$(cat <<EOF_INNER
+
+WRITER_SCRIPT=$(cat <<EOF2
 set -u
+
 run_id='${RUN_ID}'
 rw_host='${RW_HOST}'
 db_user='${DB_USER}'
@@ -163,49 +176,80 @@ duration='${WRITER_DURATION}'
 interval='${WRITE_INTERVAL}'
 connect_timeout='${CONNECT_TIMEOUT}'
 statement_timeout_ms='${PSQL_STATEMENT_TIMEOUT_MS}'
+
 attempt=0
 end=\$((SECONDS + duration))
+
 while [ "\$SECONDS" -lt "\$end" ] && [ ! -f /tmp/stop ]; do
   attempt=\$((attempt + 1))
   start_ts=\$(date +%s.%N)
+
   if psql "host=\${rw_host} user=\${db_user} dbname=\${db_name} connect_timeout=\${connect_timeout}" \
-      -v ON_ERROR_STOP=1 -tAc \
-      "SET statement_timeout = '\${statement_timeout_ms}ms'; INSERT INTO failover_probe(run_id, attempt_no) VALUES ('\${run_id}', \${attempt});" >/dev/null 2>&1; then
+      -v ON_ERROR_STOP=1 \
+      -v statement_timeout="\${statement_timeout_ms}" \
+      -tAc "INSERT INTO failover_probe(run_id, attempt_no) VALUES ('\${run_id}', \${attempt});" >/dev/null 2>&1; then
     result="OK"
   else
     result="FAIL"
   fi
+
   end_ts=\$(date +%s.%N)
   duration_ms=\$(awk -v a="\${end_ts}" -v b="\${start_ts}" 'BEGIN{printf "%.0f", (a-b)*1000}')
   echo "\${attempt},\${start_ts},\${end_ts},\${duration_ms},\${result}"
+
   sleep "\${interval}"
 done
-EOF_INNER
+EOF2
 )
 
-${KC} delete pod "${WRITER_POD}" -n "${NS}" --ignore-not-found --grace-period=0 --force >/dev/null 2>&1 || true
 ${KC} run "${WRITER_POD}" -n "${NS}" --image="${WRITER_IMAGE}" \
-  --restart=Never --env="PGPASSWORD=${PGPASS}" \
+  --restart=Never \
+  --env="PGPASSWORD=${PGPASS}" \
   --command -- bash -c "${WRITER_SCRIPT}" >/dev/null
+
+log "Waiting for writer pod to become Ready..."
+if ! ${KC} wait --for=condition=Ready pod/"${WRITER_POD}" -n "${NS}" --timeout=180s; then
+  echo "ERROR: writer pod did not become Ready." >&2
+  ${KC} get pod "${WRITER_POD}" -n "${NS}" -o wide >&2 || true
+  ${KC} describe pod "${WRITER_POD}" -n "${NS}" >&2 || true
+  exit 1
+fi
 
 log "Waiting for ${PRE_OK_REQUIRED} stable OK writes before injection..."
 PRE_OK_COUNT=0
-for _ in $(seq 1 120); do
-  PRE_OK_COUNT="$(${KC} logs "${WRITER_POD}" -n "${NS}" 2>/dev/null | awk -F',' '$5=="OK"{c++} END{print c+0}')"
+
+for i in $(seq 1 180); do
+  PRE_OK_COUNT="$(safe_writer_logs | awk -F',' '$5=="OK"{c++} END{print c+0}')"
+
   if (( PRE_OK_COUNT >= PRE_OK_REQUIRED )); then
-    log "Writer stable (${PRE_OK_COUNT} OK writes)."
+    log "Writer is stable (${PRE_OK_COUNT} OK writes)."
     break
   fi
+
+  if (( i % 10 == 0 )); then
+    log "  writer OK count after ${i}s: ${PRE_OK_COUNT}/${PRE_OK_REQUIRED}"
+    ${KC} get pod "${WRITER_POD}" -n "${NS}" -o wide || true
+  fi
+
   sleep 1
 done
-(( PRE_OK_COUNT >= PRE_OK_REQUIRED )) || fail "writer did not produce ${PRE_OK_REQUIRED} successful writes before injection. See: ${KC} logs ${WRITER_POD} -n ${NS}"
 
-# --- 3. Start state watcher ----------------------------------
+if (( PRE_OK_COUNT < PRE_OK_REQUIRED )); then
+  echo "ERROR: writer did not produce ${PRE_OK_REQUIRED} successful writes before injection." >&2
+  echo "Writer pod status:" >&2
+  ${KC} get pod "${WRITER_POD}" -n "${NS}" -o wide >&2 || true
+  echo "Writer logs:" >&2
+  safe_writer_logs >&2
+  exit 1
+fi
+
+# --- 4. Start CNPG state watcher -----------------------------
 echo "timestamp_epoch,phase,currentPrimary,readyInstances" > "${STATE_CSV}"
 echo "timestamp_epoch,event,detail" > "${EVENTS_CSV}"
 event "initial_primary" "${INIT_PRIMARY}"
+
 (
-  ${KC} get cluster/${CLUSTER} -n "${NS}" \
+  ${KC} get cluster/"${CLUSTER}" -n "${NS}" \
     -o jsonpath='{.status.phase}|{.status.currentPrimary}|{.status.readyInstances}{"\n"}' \
     --watch 2>/dev/null | while IFS='|' read -r p cp ri; do
       echo "$(date +%s.%N),${p},${cp},${ri}" >> "${STATE_CSV}"
@@ -213,47 +257,62 @@ event "initial_primary" "${INIT_PRIMARY}"
 ) &
 WATCH_PID=$!
 
-# --- 4. Inject primary failure -------------------------------
+LAST_OK_BEFORE="$(safe_writer_logs | awk -F',' '$5=="OK"{v=$3} END{print v}')"
+if [[ -z "${LAST_OK_BEFORE}" ]]; then
+  echo "ERROR: cannot determine last successful write before injection." >&2
+  exit 1
+fi
+
+# --- 5. Inject primary failure -------------------------------
 sleep 2
 T_INJECT="$(date +%s.%N)"
 event "failure_injected" "force_delete_primary=${INIT_PRIMARY}"
+
 log "==> INJECTING FAILURE: force-deleting primary ${INIT_PRIMARY}"
 ${KC} delete pod "${INIT_PRIMARY}" -n "${NS}" --grace-period=0 --force >/dev/null
 
-# --- 5. Wait for client-visible recovery ---------------------
+# --- 6. Wait for client-visible recovery ---------------------
 log "Waiting for first successful write after failure injection (up to ${MAX_WAIT}s)..."
+
 FIRST_OK_AFTER=""
 START_WAIT="$(date +%s.%N)"
+
 while :; do
-  FIRST_OK_AFTER="$(${KC} logs "${WRITER_POD}" -n "${NS}" 2>/dev/null | \
-    awk -F',' -v inj="${T_INJECT}" '$5=="OK" && $2 > inj {print $3; exit}')"
+  FIRST_OK_AFTER="$(safe_writer_logs | awk -F',' -v inj="${T_INJECT}" '$5=="OK" && $2 > inj {print $2; exit}')"
+
   if [[ -n "${FIRST_OK_AFTER}" ]]; then
-    event "client_write_recovered" "first_ok_after=${FIRST_OK_AFTER}"
+    event "client_write_recovered" "first_ok_after_start=${FIRST_OK_AFTER}"
     log "Client-visible writes recovered."
     break
   fi
 
   NOW="$(date +%s.%N)"
   WAITED="$(awk -v a="${NOW}" -v b="${START_WAIT}" 'BEGIN{printf "%.0f", a-b}')"
+
   if (( WAITED > MAX_WAIT )); then
     event "client_write_recovery_timeout" "max_wait=${MAX_WAIT}"
     log "WARNING: no successful write observed within ${MAX_WAIT}s."
     break
   fi
+
   sleep 1
 done
 
-# --- 6. Wait for full CNPG recovery, secondary metric --------
-log "Checking full CNPG recovery state (secondary metric)..."
+# --- 7. Wait for full cluster recovery -----------------------
+log "Checking CNPG full recovery state (secondary metric)..."
+
 NEW_PRIMARY=""
 CLUSTER_RECOVERED_AT=""
 START_CLUSTER_WAIT="$(date +%s.%N)"
-while :; do
-  PHASE="$(${KC} get cluster/${CLUSTER} -n "${NS}" -o jsonpath='{.status.phase}' 2>/dev/null || echo '')"
-  CUR_PRIMARY="$(${KC} get cluster/${CLUSTER} -n "${NS}" -o jsonpath='{.status.currentPrimary}' 2>/dev/null || echo '')"
-  READY="$(${KC} get cluster/${CLUSTER} -n "${NS}" -o jsonpath='{.status.readyInstances}' 2>/dev/null || echo '0')"
 
-  [[ -n "${CUR_PRIMARY}" && "${CUR_PRIMARY}" != "${INIT_PRIMARY}" ]] && NEW_PRIMARY="${CUR_PRIMARY}"
+while :; do
+  PHASE="$(${KC} get cluster/"${CLUSTER}" -n "${NS}" -o jsonpath='{.status.phase}' 2>/dev/null || echo '')"
+  CUR_PRIMARY="$(${KC} get cluster/"${CLUSTER}" -n "${NS}" -o jsonpath='{.status.currentPrimary}' 2>/dev/null || echo '')"
+  READY="$(${KC} get cluster/"${CLUSTER}" -n "${NS}" -o jsonpath='{.status.readyInstances}' 2>/dev/null || echo '0')"
+
+  if [[ -n "${CUR_PRIMARY}" && "${CUR_PRIMARY}" != "${INIT_PRIMARY}" ]]; then
+    NEW_PRIMARY="${CUR_PRIMARY}"
+  fi
 
   if [[ "${PHASE}" == "Cluster in healthy state" && "${READY}" == "${PG_INSTANCES}" && -n "${NEW_PRIMARY}" ]]; then
     CLUSTER_RECOVERED_AT="$(date +%s.%N)"
@@ -264,74 +323,92 @@ while :; do
 
   NOW="$(date +%s.%N)"
   WAITED="$(awk -v a="${NOW}" -v b="${START_CLUSTER_WAIT}" 'BEGIN{printf "%.0f", a-b}')"
+
   if (( WAITED > MAX_WAIT )); then
     event "cluster_recovery_timeout" "phase=${PHASE};primary=${CUR_PRIMARY};ready=${READY}/${PG_INSTANCES}"
     log "WARNING: cluster did not report full recovery within ${MAX_WAIT}s."
     break
   fi
+
   sleep 2
 done
 
-log "Observing for ${OBSERVE_AFTER}s after recovery window..."
+log "Observing for ${OBSERVE_AFTER}s more..."
 sleep "${OBSERVE_AFTER}"
 
-# --- 7. Stop writer and watcher before final counting --------
-log "Stopping writer before collecting final metrics..."
+# --- 8. Stop writer and watcher before counting rows ----------
+log "Stopping writer gracefully before collecting final metrics..."
+
 if [[ -n "${WATCH_PID}" ]]; then
   kill "${WATCH_PID}" >/dev/null 2>&1 || true
-  wait "${WATCH_PID}" >/dev/null 2>&1 || true
   WATCH_PID=""
 fi
 
 ${KC} exec "${WRITER_POD}" -n "${NS}" -- touch /tmp/stop >/dev/null 2>&1 || true
-for _ in $(seq 1 45); do
+
+for i in $(seq 1 45); do
   WRITER_PHASE="$(${KC} get pod "${WRITER_POD}" -n "${NS}" -o jsonpath='{.status.phase}' 2>/dev/null || echo '')"
   if [[ "${WRITER_PHASE}" == "Succeeded" || "${WRITER_PHASE}" == "Failed" ]]; then
-    WRITER_STOPPED="true"
     break
   fi
   sleep 1
 done
 
 log "Capturing writer log..."
-${KC} logs "${WRITER_POD}" -n "${NS}" > "${WRITER_RAW_LOG}" 2>/dev/null || true
+if ! ${KC} logs "${WRITER_POD}" -n "${NS}" > "${WRITER_RAW_LOG}" 2>"${WRITER_LOG_ERR}"; then
+  echo "ERROR: could not capture writer logs." >&2
+  cat "${WRITER_LOG_ERR}" >&2 || true
+  ${KC} get pod "${WRITER_POD}" -n "${NS}" -o wide >&2 || true
+  exit 1
+fi
+
 ${KC} delete pod "${WRITER_POD}" -n "${NS}" --ignore-not-found --grace-period=0 --force >/dev/null 2>&1 || true
 
-# --- 8. Normalize writer log ---------------------------------
-log "Building writes.csv..."
+# --- 9. Build writes.csv -------------------------------------
+log "Collecting writer results..."
+
 echo "attempt_no,start_ts,end_ts,duration_ms,result,elapsed_start_s,elapsed_end_s,period" > "${WRITES_CSV}"
-while IFS=',' read -r attempt_no start_ts end_ts duration_ms result extra; do
-  [[ "${attempt_no}" =~ ^[0-9]+$ ]] || continue
-  [[ "${start_ts}" =~ ^[0-9]+([.][0-9]+)?$ ]] || continue
-  [[ "${end_ts}" =~ ^[0-9]+([.][0-9]+)?$ ]] || continue
-  [[ "${result}" == "OK" || "${result}" == "FAIL" ]] || continue
 
-  elapsed_start="$(awk -v a="${start_ts}" -v b="${T_INJECT}" 'BEGIN{printf "%.3f", a-b}')"
-  elapsed_end="$(awk -v a="${end_ts}" -v b="${T_INJECT}" 'BEGIN{printf "%.3f", a-b}')"
+awk -F',' -v inj="${T_INJECT}" '
+  NF >= 5 {
+    attempt_no=$1
+    start_ts=$2
+    end_ts=$3
+    duration_ms=$4
+    result=$5
 
-  if awk -v e="${end_ts}" -v inj="${T_INJECT}" 'BEGIN{exit !(e < inj)}'; then
-    period="before"
-  elif awk -v s="${start_ts}" -v inj="${T_INJECT}" 'BEGIN{exit !(s > inj)}'; then
-    period="after"
-  else
-    period="overlap"
-  fi
+    elapsed_start=start_ts-inj
+    elapsed_end=end_ts-inj
 
-  echo "${attempt_no},${start_ts},${end_ts},${duration_ms},${result},${elapsed_start},${elapsed_end},${period}" >> "${WRITES_CSV}"
-done < "${WRITER_RAW_LOG}"
+    if (end_ts < inj) {
+      period="before"
+    } else if (start_ts > inj) {
+      period="after"
+    } else {
+      period="overlap"
+    }
+
+    printf "%s,%s,%s,%s,%s,%.3f,%.3f,%s\n",
+      attempt_no,start_ts,end_ts,duration_ms,result,elapsed_start,elapsed_end,period
+  }
+' "${WRITER_RAW_LOG}" >> "${WRITES_CSV}"
 
 WRITE_TOTAL="$(awk -F',' 'NR>1{c++} END{print c+0}' "${WRITES_CSV}")"
-(( WRITE_TOTAL > 0 )) || fail "no writer log lines were collected."
+if (( WRITE_TOTAL == 0 )); then
+  echo "ERROR: no writer log lines were collected. The run is invalid." >&2
+  exit 1
+fi
 
-# --- 9. Compute metrics --------------------------------------
+# --- 10. Compute metrics -------------------------------------
 SUCCESSFUL_WRITES="$(awk -F',' 'NR>1 && $5=="OK"{c++} END{print c+0}' "${WRITES_CSV}")"
 FAILED_WRITES="$(awk -F',' 'NR>1 && $5=="FAIL"{c++} END{print c+0}' "${WRITES_CSV}")"
-FAILS_AFTER_INJECTION="$(awk -F',' 'NR>1 && $5=="FAIL" && ($8=="after" || $8=="overlap"){c++} END{print c+0}' "${WRITES_CSV}")"
+FAILS_AFTER_INJECTION="$(awk -F',' 'NR>1 && $5=="FAIL" && $8=="after"{c++} END{print c+0}' "${WRITES_CSV}")"
 OK_BEFORE_COUNT="$(awk -F',' 'NR>1 && $5=="OK" && $8=="before"{c++} END{print c+0}' "${WRITES_CSV}")"
 OK_AFTER_COUNT="$(awk -F',' 'NR>1 && $5=="OK" && $8=="after"{c++} END{print c+0}' "${WRITES_CSV}")"
+OVERLAP_COUNT="$(awk -F',' 'NR>1 && $8=="overlap"{c++} END{print c+0}' "${WRITES_CSV}")"
 
 LAST_OK_BEFORE_LOG="$(awk -F',' 'NR>1 && $5=="OK" && $8=="before"{v=$3} END{print v}' "${WRITES_CSV}")"
-FIRST_OK_AFTER_LOG="$(awk -F',' 'NR>1 && $5=="OK" && $8=="after"{print $3; exit}' "${WRITES_CSV}")"
+FIRST_OK_AFTER_LOG="$(awk -F',' 'NR>1 && $5=="OK" && $8=="after"{print $2; exit}' "${WRITES_CSV}")"
 
 if [[ -n "${LAST_OK_BEFORE_LOG}" && -n "${FIRST_OK_AFTER_LOG}" ]]; then
   CLIENT_DOWNTIME="$(awk -v a="${FIRST_OK_AFTER_LOG}" -v b="${LAST_OK_BEFORE_LOG}" 'BEGIN{printf "%.3f", a-b}')"
@@ -346,21 +423,24 @@ else
 fi
 
 if [[ -n "${FIRST_OK_AFTER_LOG}" ]]; then
-  SECONDARY_FAILS_AFTER_RECOVERY="$(awk -F',' -v first="${FIRST_OK_AFTER_LOG}" \
-    'NR>1 && $5=="FAIL" && $2 > first {c++} END{print c+0}' "${WRITES_CSV}")"
+  SECONDARY_FAILS_AFTER_RECOVERY="$(awk -F',' -v first="${FIRST_OK_AFTER_LOG}" '
+    NR>1 && $5=="FAIL" && $2 > first {c++} END{print c+0}' "${WRITES_CSV}")"
 else
   SECONDARY_FAILS_AFTER_RECOVERY="n/a"
 fi
 
+# Count only rows belonging to this run_id.
 ROWS="n/a"
 for attempt in 1 2 3 4 5; do
   R="$(run_psql "pg-check-${RUN_ID}-${attempt}" \
     "SELECT count(*) FROM failover_probe WHERE run_id = '${RUN_ID}';" \
     2>/dev/null | tr -d '[:space:]' || echo '')"
+
   if [[ -n "${R}" && "${R}" =~ ^[0-9]+$ ]]; then
     ROWS="${R}"
     break
   fi
+
   sleep 3
 done
 
@@ -375,21 +455,32 @@ fi
 
 RUN_VALID="true"
 INVALID_REASON=""
-if (( OK_BEFORE_COUNT < PRE_OK_REQUIRED )); then
-  RUN_VALID="false"; INVALID_REASON+="writer_not_stable_before_injection;"
-fi
-if [[ "${CLIENT_DOWNTIME}" == "n/a" ]]; then
-  RUN_VALID="false"; INVALID_REASON+="no_client_recovery_observed;"
-fi
-if [[ "${DATA_LOSS_CHECK}" != "PASS" ]]; then
-  RUN_VALID="false"; INVALID_REASON+="successful_writes_do_not_match_committed_rows;"
-fi
-if [[ "${WRITER_STOPPED}" != "true" ]]; then
-  RUN_VALID="false"; INVALID_REASON+="writer_did_not_stop_gracefully;"
-fi
-[[ -z "${INVALID_REASON}" ]] && INVALID_REASON="none"
 
-# --- 10. Summary ---------------------------------------------
+if (( OK_BEFORE_COUNT < PRE_OK_REQUIRED )); then
+  RUN_VALID="false"
+  INVALID_REASON="${INVALID_REASON}writer_not_stable_before_injection;"
+fi
+
+if [[ "${CLIENT_DOWNTIME}" == "n/a" ]]; then
+  RUN_VALID="false"
+  INVALID_REASON="${INVALID_REASON}no_client_recovery_observed;"
+fi
+
+if [[ "${DATA_LOSS_CHECK}" != "PASS" ]]; then
+  RUN_VALID="false"
+  INVALID_REASON="${INVALID_REASON}successful_writes_do_not_match_committed_rows;"
+fi
+
+if [[ -z "${NEW_PRIMARY}" ]]; then
+  RUN_VALID="false"
+  INVALID_REASON="${INVALID_REASON}new_primary_not_observed;"
+fi
+
+if [[ -z "${INVALID_REASON}" ]]; then
+  INVALID_REASON="none"
+fi
+
+# --- 11. Write summary ---------------------------------------
 {
   echo "metric,value"
   echo "run_id,${RUN_ID}"
@@ -409,7 +500,9 @@ fi
   echo "data_loss_check,${DATA_LOSS_CHECK}"
   echo "pre_failure_ok_count,${OK_BEFORE_COUNT}"
   echo "post_failure_ok_count,${OK_AFTER_COUNT}"
-  echo "writer_stopped_gracefully,${WRITER_STOPPED}"
+  echo "overlap_attempt_count,${OVERLAP_COUNT}"
+  echo "max_wait_s,${MAX_WAIT}"
+  echo "observe_after_s,${OBSERVE_AFTER}"
   echo "write_interval_s,${WRITE_INTERVAL}"
   echo "connect_timeout_s,${CONNECT_TIMEOUT}"
   echo "statement_timeout_ms,${PSQL_STATEMENT_TIMEOUT_MS}"
@@ -440,7 +533,7 @@ fi
   echo "SECONDARY OBSERVATIONS:"
   echo "  CNPG full recovery (s):          ${CLUSTER_RECOVERY_S}"
   echo "  Fails after first recovery:      ${SECONDARY_FAILS_AFTER_RECOVERY}"
-  echo "  Writer stopped gracefully:       ${WRITER_STOPPED}"
+  echo "  Overlap attempts:                ${OVERLAP_COUNT}"
   echo ""
   echo "CSV files:"
   echo "  writer.raw.log — raw writer output"
