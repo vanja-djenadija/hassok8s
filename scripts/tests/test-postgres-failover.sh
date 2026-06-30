@@ -91,7 +91,7 @@ for attempt in 1 2 3; do
       --restart=Never --rm -i --quiet \
       --env="PGPASSWORD=${PGPASS}" --command -- \
       psql "host=${RW_HOST} user=keycloak dbname=keycloak connect_timeout=10" -tAc \
-      "CREATE TABLE IF NOT EXISTS failover_probe(id bigserial PRIMARY KEY, ts timestamptz DEFAULT now());" \
+      "CREATE TABLE IF NOT EXISTS failover_probe(id bigserial PRIMARY KEY, ts timestamptz DEFAULT now()); TRUNCATE failover_probe;" \
       >/dev/null 2>&1; then
     SETUP_OK="true"; break
   fi
@@ -207,11 +207,16 @@ else
   DOWNTIME="0"   # no failed writes observed
 fi
 
-# Data-loss check: committed rows.
-ROWS="$(${KC} run "pg-check-${RUN_ID}" -n "${NS}" --image="${WRITER_IMAGE}" \
-  --restart=Never --rm -i --quiet --env="PGPASSWORD=${PGPASS}" --command -- \
-  psql "host=${RW_HOST} user=keycloak dbname=keycloak connect_timeout=10" -tAc \
-  "SELECT count(*) FROM failover_probe;" 2>/dev/null | tr -d '[:space:]' || echo 'n/a')"
+# Data-loss check: committed rows (with retries, the DB may be briefly busy).
+ROWS="n/a"
+for attempt in 1 2 3 4 5; do
+  R="$(${KC} run "pg-check-${RUN_ID}-${attempt}" -n "${NS}" --image="${WRITER_IMAGE}" \
+    --restart=Never --rm -i --quiet --env="PGPASSWORD=${PGPASS}" --command -- \
+    psql "host=${RW_HOST} user=keycloak dbname=keycloak connect_timeout=10" -tAc \
+    "SELECT count(*) FROM failover_probe;" 2>/dev/null | tr -d '[:space:]' || echo '')"
+  if [[ -n "${R}" && "${R}" =~ ^[0-9]+$ ]]; then ROWS="${R}"; break; fi
+  sleep 3
+done
 
 # --- 9. Write summary ----------------------------------------
 {
