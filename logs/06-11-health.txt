@@ -1,0 +1,2 @@
+Provjera /health/ready preko poda keycloak-unibl-0:
+Health provjera nije uspjela (provjeriti ručno).

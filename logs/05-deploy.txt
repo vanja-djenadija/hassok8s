@@ -1,0 +1,142 @@
+==> Renderovanje manifesta
+==> [1/4] PostgreSQL klaster
+cluster.postgresql.cnpg.io/keycloak-postgres unchanged
+    Čekanje da PostgreSQL bude zdrav (do 15 min)...
+    [1/180] phase='Cluster in healthy state' readyInstances='3/3'
+    PostgreSQL klaster je zdrav (3/3 instanci).
+==> [2/4] Keycloak klaster
+keycloak.k8s.keycloak.org/keycloak-unibl created
+    Čekanje da Keycloak bude spreman (povlačenje image-a + JVM zagrijavanje, do 15 min)...
+    [1/180] Keycloak Ready='<nema>' spremnih podova='0
+0/3'
+    [2/180] Keycloak Ready='False' spremnih podova='0
+0/3'
+    [3/180] Keycloak Ready='False' spremnih podova='0
+0/3'
+    [4/180] Keycloak Ready='<nema>' spremnih podova='0
+0/3'
+    [5/180] Keycloak Ready='False' spremnih podova='0
+0/3'
+    [6/180] Keycloak Ready='False' spremnih podova='0
+0/3'
+    [7/180] Keycloak Ready='False' spremnih podova='0
+0/3'
+    [8/180] Keycloak Ready='False' spremnih podova='0
+0/3'
+    [9/180] Keycloak Ready='False' spremnih podova='0
+0/3'
+    [10/180] Keycloak Ready='False' spremnih podova='0
+0/3'
+    [11/180] Keycloak Ready='False' spremnih podova='0
+0/3'
+    [12/180] Keycloak Ready='False' spremnih podova='0
+0/3'
+    [13/180] Keycloak Ready='False' spremnih podova='0
+0/3'
+    [14/180] Keycloak Ready='False' spremnih podova='0
+0/3'
+    [15/180] Keycloak Ready='False' spremnih podova='0
+0/3'
+    [16/180] Keycloak Ready='False' spremnih podova='0
+0/3'
+    [17/180] Keycloak Ready='False' spremnih podova='0
+0/3'
+    [18/180] Keycloak Ready='False' spremnih podova='0
+0/3'
+    [19/180] Keycloak Ready='False' spremnih podova='0
+0/3'
+    [20/180] Keycloak Ready='False' spremnih podova='0
+0/3'
+    [21/180] Keycloak Ready='False' spremnih podova='0
+0/3'
+    [22/180] Keycloak Ready='False' spremnih podova='0
+0/3'
+    [23/180] Keycloak Ready='False' spremnih podova='0
+0/3'
+    [24/180] Keycloak Ready='False' spremnih podova='0
+0/3'
+    [25/180] Keycloak Ready='False' spremnih podova='0
+0/3'
+    [26/180] Keycloak Ready='False' spremnih podova='1/3'
+    [27/180] Keycloak Ready='False' spremnih podova='1/3'
+    [28/180] Keycloak Ready='False' spremnih podova='1/3'
+    [29/180] Keycloak Ready='False' spremnih podova='1/3'
+    [30/180] Keycloak Ready='False' spremnih podova='1/3'
+    [31/180] Keycloak Ready='False' spremnih podova='1/3'
+    [32/180] Keycloak Ready='False' spremnih podova='1/3'
+    [33/180] Keycloak Ready='False' spremnih podova='1/3'
+    [34/180] Keycloak Ready='False' spremnih podova='1/3'
+    [35/180] Keycloak Ready='False' spremnih podova='1/3'
+    [36/180] Keycloak Ready='False' spremnih podova='1/3'
+    [37/180] Keycloak Ready='False' spremnih podova='2/3'
+    [38/180] Keycloak Ready='False' spremnih podova='2/3'
+    [39/180] Keycloak Ready='False' spremnih podova='2/3'
+    [40/180] Keycloak Ready='False' spremnih podova='2/3'
+    [41/180] Keycloak Ready='False' spremnih podova='2/3'
+    [42/180] Keycloak Ready='False' spremnih podova='2/3'
+    [43/180] Keycloak Ready='False' spremnih podova='2/3'
+    [44/180] Keycloak Ready='False' spremnih podova='2/3'
+    [45/180] Keycloak Ready='False' spremnih podova='2/3'
+    [46/180] Keycloak Ready='False' spremnih podova='2/3'
+    [47/180] Keycloak Ready='False' spremnih podova='2/3'
+    [48/180] Keycloak Ready='False' spremnih podova='2/3'
+    [49/180] Keycloak Ready='False' spremnih podova='2/3'
+    [50/180] Keycloak Ready='False' spremnih podova='2/3'
+    [51/180] Keycloak Ready='False' spremnih podova='2/3'
+    [52/180] Keycloak Ready='False' spremnih podova='2/3'
+    [53/180] Keycloak Ready='False' spremnih podova='2/3'
+    [54/180] Keycloak Ready='False' spremnih podova='2/3'
+    [55/180] Keycloak Ready='False' spremnih podova='2/3'
+    [56/180] Keycloak Ready='False' spremnih podova='2/3'
+    [57/180] Keycloak Ready='False' spremnih podova='2/3'
+    [58/180] Keycloak Ready='False' spremnih podova='2/3'
+    [59/180] Keycloak Ready='False' spremnih podova='2/3'
+    [60/180] Keycloak Ready='False' spremnih podova='2/3'
+    [61/180] Keycloak Ready='False' spremnih podova='2/3'
+    [62/180] Keycloak Ready='False' spremnih podova='2/3'
+    [63/180] Keycloak Ready='False' spremnih podova='3/3'
+    [64/180] Keycloak Ready='False' spremnih podova='3/3'
+    [65/180] Keycloak Ready='True' spremnih podova='3/3'
+    Keycloak klaster je spreman (3/3 instanci).
+==> [3/4] Realm import
+keycloakrealmimport.k8s.keycloak.org/realm-import created
+==> [4/4] Ingress
+ingress.networking.k8s.io/keycloak-ingress created
+
+==> Stanje resursa
+NAME                                    READY   STATUS              RESTARTS   AGE
+pod/keycloak-operator-7d897867b-kqwxs   1/1     Running             0          23h
+pod/keycloak-postgres-1                 1/1     Running             0          79m
+pod/keycloak-postgres-2                 1/1     Running             0          77m
+pod/keycloak-postgres-3                 1/1     Running             0          70m
+pod/keycloak-unibl-0                    1/1     Running             0          6m42s
+pod/keycloak-unibl-1                    1/1     Running             0          4m9s
+pod/keycloak-unibl-2                    1/1     Running             0          3m6s
+pod/realm-import-w4br9                  0/1     ContainerCreating   0          1s
+
+NAME                               TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)             AGE
+service/keycloak-operator          ClusterIP   10.152.183.74    <none>        80/TCP              23h
+service/keycloak-postgres-r        ClusterIP   10.152.183.158   <none>        5432/TCP            83m
+service/keycloak-postgres-ro       ClusterIP   10.152.183.250   <none>        5432/TCP            83m
+service/keycloak-postgres-rw       ClusterIP   10.152.183.171   <none>        5432/TCP            83m
+service/keycloak-unibl-discovery   ClusterIP   None             <none>        7800/TCP            6m43s
+service/keycloak-unibl-service     ClusterIP   10.152.183.213   <none>        8443/TCP,9000/TCP   6m43s
+
+NAME                                READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/keycloak-operator   1/1     1            1           23h
+
+NAME                                           DESIRED   CURRENT   READY   AGE
+replicaset.apps/keycloak-operator-5859445dbd   0         0         0       23h
+replicaset.apps/keycloak-operator-7d897867b    1         1         1       23h
+
+NAME                              READY   AGE
+statefulset.apps/keycloak-unibl   3/3     6m42s
+
+NAME                     COMPLETIONS   DURATION   AGE
+job.batch/realm-import   0/1           1s         1s
+
+============================================================
+ DEPLOY ZAVRŠEN
+ Otvorite:  https://auth.etfbl.net
+ Admin:     https://auth.etfbl.net/admin
+============================================================

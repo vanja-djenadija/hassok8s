@@ -1,0 +1,4 @@
+NAME                  STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS        VOLUMEATTRIBUTESCLASS   AGE
+keycloak-postgres-1   Bound    pvc-aa8396fa-9700-4878-a6a9-982e1021b115   20Gi       RWO            microk8s-hostpath   <unset>                 115m
+keycloak-postgres-2   Bound    pvc-efa48d48-0f16-48e5-9981-47214257ef6b   20Gi       RWO            microk8s-hostpath   <unset>                 110m
+keycloak-postgres-3   Bound    pvc-850efba2-85da-4e23-995f-bc5ad8fbcbbe   20Gi       RWO            microk8s-hostpath   <unset>                 106m

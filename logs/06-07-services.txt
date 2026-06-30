@@ -1,0 +1,7 @@
+NAME                       TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)             AGE
+keycloak-operator          ClusterIP   10.152.183.74    <none>        80/TCP              23h
+keycloak-postgres-r        ClusterIP   10.152.183.158   <none>        5432/TCP            115m
+keycloak-postgres-ro       ClusterIP   10.152.183.250   <none>        5432/TCP            115m
+keycloak-postgres-rw       ClusterIP   10.152.183.171   <none>        5432/TCP            115m
+keycloak-unibl-discovery   ClusterIP   None             <none>        7800/TCP            38m
+keycloak-unibl-service     ClusterIP   10.152.183.213   <none>        8443/TCP,9000/TCP   38m

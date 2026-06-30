@@ -1,0 +1,5 @@
+NAME   STATUS   ROLES    AGE     VERSION    INTERNAL-IP     EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+n00    Ready    <none>   8d      v1.29.15   78.28.135.130   <none>        Ubuntu 24.04.3 LTS   6.8.0-110-generic   containerd://1.6.28
+n01    Ready    <none>   7d23h   v1.29.15   78.28.135.131   <none>        Ubuntu 24.04.3 LTS   6.8.0-106-generic   containerd://1.6.28
+n02    Ready    <none>   7d23h   v1.29.15   78.28.135.132   <none>        Ubuntu 24.04.3 LTS   6.8.0-110-generic   containerd://1.6.28
+

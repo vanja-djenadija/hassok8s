@@ -1,0 +1,9 @@
+NAME                                READY   STATUS      RESTARTS   AGE    IP            NODE   NOMINATED NODE   READINESS GATES
+keycloak-postgres-1                 1/1     Running     0          111m   10.1.79.70    n00    <none>           <none>
+keycloak-unibl-2                    1/1     Running     0          34m    10.1.79.71    n00    <none>           <none>
+realm-import-w4br9                  0/1     Completed   0          31m    10.1.79.72    n00    <none>           <none>
+keycloak-operator-7d897867b-kqwxs   1/1     Running     0          23h    10.1.77.5     n01    <none>           <none>
+keycloak-postgres-3                 1/1     Running     0          102m   10.1.77.8     n01    <none>           <none>
+keycloak-postgres-2                 1/1     Running     0          109m   10.1.32.201   n02    <none>           <none>
+keycloak-unibl-0                    1/1     Running     0          38m    10.1.32.202   n02    <none>           <none>
+keycloak-unibl-1                    1/1     Running     0          36m    10.1.32.203   n02    <none>           <none>
