@@ -1,0 +1,50 @@
+timestamp_epoch,phase,currentPrimary,readyInstances
+1782823231.189700203,Cluster in healthy state,keycloak-postgres-2,3
+1782823234.281359215,Cluster in healthy state,keycloak-postgres-2,2
+1782823234.440806836,Cluster in healthy state,keycloak-postgres-2,2
+1782823234.496072107,Failing over,keycloak-postgres-2,2
+1782823234.520510996,Failing over,keycloak-postgres-2,2
+1782823234.791471194,Failing over,keycloak-postgres-2,2
+1782823235.041860015,Failing over,keycloak-postgres-2,2
+1782823235.186474280,Failing over,keycloak-postgres-2,2
+1782823235.436754952,Failing over,keycloak-postgres-2,2
+1782823235.699807946,Failing over,keycloak-postgres-2,2
+1782823235.890774731,Failing over,keycloak-postgres-2,2
+1782823235.994206714,Failing over,keycloak-postgres-2,2
+1782823236.137188969,Failing over,keycloak-postgres-2,2
+1782823236.217904534,Failing over,keycloak-postgres-2,2
+1782823236.409845611,Failing over,keycloak-postgres-2,2
+1782823236.499858283,Failing over,keycloak-postgres-2,2
+1782823236.642859756,Failing over,keycloak-postgres-2,2
+1782823236.724686661,Failing over,keycloak-postgres-2,2
+1782823237.057054395,Failing over,keycloak-postgres-2,2
+1782823237.174220630,Failing over,keycloak-postgres-2,2
+1782823237.304712435,Failing over,keycloak-postgres-2,2
+1782823237.687471313,Failing over,keycloak-postgres-2,2
+1782823237.940101741,Failing over,keycloak-postgres-2,2
+1782823238.005571316,Failing over,keycloak-postgres-2,2
+1782823238.338948763,Failing over,keycloak-postgres-2,2
+1782823238.486731640,Failing over,keycloak-postgres-2,2
+1782823238.638054845,Failing over,keycloak-postgres-2,2
+1782823238.707876293,Failing over,keycloak-postgres-2,2
+1782823239.041134542,Failing over,keycloak-postgres-2,2
+1782823239.187711422,Failing over,keycloak-postgres-2,2
+1782823239.435646415,Failing over,keycloak-postgres-2,2
+1782823239.520044281,Failing over,keycloak-postgres-2,2
+1782823239.752209128,Failing over,keycloak-postgres-2,2
+1782823240.078032367,Failing over,keycloak-postgres-2,2
+1782823240.295703565,Failing over,keycloak-postgres-2,2
+1782823240.424188745,Failing over,keycloak-postgres-2,2
+1782823240.485384983,Failing over,keycloak-postgres-2,2
+1782823242.046339255,Failing over,keycloak-postgres-2,2
+1782823242.076903904,Failing over,keycloak-postgres-1,2
+1782823242.423076270,Failing over,keycloak-postgres-1,2
+1782823242.622012154,Failing over,keycloak-postgres-1,2
+1782823242.939669274,Waiting for the instances to become active,keycloak-postgres-1,2
+1782823243.277476891,Waiting for the instances to become active,keycloak-postgres-1,2
+1782823243.729148467,Waiting for the instances to become active,keycloak-postgres-1,2
+1782823249.028917577,Waiting for the instances to become active,keycloak-postgres-1,2
+1782823249.307326731,Waiting for the instances to become active,keycloak-postgres-1,2
+1782823458.731268572,Waiting for the instances to become active,keycloak-postgres-1,3
+1782823460.074375163,Waiting for the instances to become active,keycloak-postgres-1,3
+1782823460.076865605,Cluster in healthy state,keycloak-postgres-1,3

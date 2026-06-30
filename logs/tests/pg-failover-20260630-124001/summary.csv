@@ -1,0 +1,5 @@
+metric,value
+client_write_downtime_s,7.48
+failed_writes,7
+total_write_attempts,196
+committed_rows,196

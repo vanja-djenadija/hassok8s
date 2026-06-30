@@ -1,0 +1,19 @@
+============================================================
+ TEST: Primary PostgreSQL instance failure (CNPG failover)
+ Run ID: 20260630-124001
+============================================================
+
+Initial primary:  keycloak-postgres-2
+New primary:      keycloak-postgres-1
+Instances:        3
+
+CLIENT-SIDE MEASUREMENT (primary metric, robust):
+  Write downtime (s):        7.48
+  Failed write attempts:     7
+  Total write attempts:      196
+  Committed rows (no loss):  196
+
+CSV files for plotting:
+  writes.csv  — write availability over time (outage window)
+  state.csv   — CNPG cluster state timeline (context)
+  summary.csv — key metrics
