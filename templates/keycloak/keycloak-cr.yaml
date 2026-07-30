@@ -1,9 +1,3 @@
-# =============================================================
-#  Keycloak klaster — Keycloak CR
-#  Placeholderi ${...} popunjava skripta 05 (envsubst).
-#  Operator kreira Deployment/StatefulSet, servis, Infinispan
-#  clustering (DNS_PING) i health probe.
-# =============================================================
 apiVersion: k8s.keycloak.org/v2beta1
 kind: Keycloak
 metadata:
@@ -48,10 +42,21 @@ spec:
     - name: health-enabled
       value: "true"
 
+  scheduling:
+    topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: keycloak
+            app.kubernetes.io/managed-by: keycloak-operator
+            app.kubernetes.io/component: server
+
   resources:
     requests:
-      cpu: "500m"
-      memory: "1Gi"
+      cpu: "1000m"
+      memory: "1700Mi"
     limits:
       cpu: "2"
-      memory: "2Gi"
+      memory: "3Gi"

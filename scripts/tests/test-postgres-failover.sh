@@ -1,546 +1,563 @@
 #!/usr/bin/env bash
-# =============================================================
-#  TEST — Primary PostgreSQL pod failure (CloudNativePG failover)
-#
-#  Primary metric:
-#    Client-visible write downtime through the CloudNativePG -rw service.
-#
-#  Definition:
-#    downtime = first successful INSERT started after failure injection
-#               - last successful INSERT completed before failure injection
-#
-#  Methodological safeguards:
-#    - each run is isolated with run_id
-#    - writer pod must be Ready before logs are read
-#    - writer must produce PRE_OK_REQUIRED successful writes before injection
-#    - writer runs continuously during failover and recovery
-#    - writer is stopped before rows are counted
-#    - committed rows are counted only for this run_id
-#    - a run is VALID only when successful writes == committed rows
-#
-#  Outputs:
-#    logs/tests/pg-failover-<RUN_ID>/
-#      writer.raw.log
-#      writes.csv
-#      state.csv
-#      events.csv
-#      summary.csv
-#      summary.txt
-# =============================================================
 set -euo pipefail
 
-# --- Parameters ----------------------------------------------
-NS="${NS:-keycloak}"
-CLUSTER="${CLUSTER:-keycloak-postgres}"
+# =============================================================
+# PostgreSQL primary failover test
+#
+# This test verifies whether the PostgreSQL cluster managed by
+# CloudNativePG can recover from the failure of the current primary
+# instance.
+#
+# The test continuously writes rows through the CNPG read-write
+# service:
+#
+#   keycloak-postgres-rw
+#
+# This service is the same stable database endpoint used by Keycloak.
+#
+# The main metric is client-visible write downtime:
+#
+#   time between the last successful write before failover impact
+#   and the first successful write after failover recovery.
+#
+# A run is valid only if:
+#   - preflight check passes,
+#   - baseline writes succeed before failure injection,
+#   - the cluster recovers to a healthy state,
+#   - successful_writes == committed_rows.
+# =============================================================
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+
+source "${ROOT_DIR}/config.env"
+
 KC="${KC:-microk8s kubectl}"
-WRITER_IMAGE="${WRITER_IMAGE:-postgres:16}"
 
-DB_USER="${DB_USER:-keycloak}"
-DB_NAME="${DB_NAME:-keycloak}"
+NS="${NAMESPACE}"
+PG_CLUSTER="${PG_CLUSTER:-keycloak-postgres}"
+PG_RW_SERVICE="${PG_RW_SERVICE:-keycloak-postgres-rw}"
+PG_DATABASE="${PG_DATABASE}"
+PG_USERNAME="${PG_USERNAME}"
 DB_SECRET="${DB_SECRET:-keycloak-db-secret}"
-RW_HOST="${RW_HOST:-${CLUSTER}-rw.${NS}.svc.cluster.local}"
 
-MAX_WAIT="${MAX_WAIT:-600}"
-OBSERVE_AFTER="${OBSERVE_AFTER:-60}"
-WRITER_DURATION="${WRITER_DURATION:-900}"
-PRE_OK_REQUIRED="${PRE_OK_REQUIRED:-10}"
-WRITE_INTERVAL="${WRITE_INTERVAL:-1}"
-CONNECT_TIMEOUT="${CONNECT_TIMEOUT:-2}"
-PSQL_STATEMENT_TIMEOUT_MS="${PSQL_STATEMENT_TIMEOUT_MS:-3000}"
+POSTGRES_LABEL="${POSTGRES_LABEL:-cnpg.io/cluster=${PG_CLUSTER}}"
+WRITER_IMAGE="${WRITER_IMAGE:-postgres:16.4}"
 
-# --- Resolve output directory --------------------------------
-SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="${SCRIPT_PATH}"
-while [[ "${ROOT_DIR}" != "/" && ! -f "${ROOT_DIR}/config.env" ]]; do
-  ROOT_DIR="$(dirname "${ROOT_DIR}")"
-done
-if [[ ! -f "${ROOT_DIR}/config.env" ]]; then
-  ROOT_DIR="$(cd "${SCRIPT_PATH}/../.." && pwd)"
-fi
+WRITE_INTERVAL="${POSTGRES_WRITE_INTERVAL:-0.5}"
+BASELINE_SECONDS="${BASELINE_SECONDS:-20}"
+POST_RECOVERY_SECONDS="${POST_RECOVERY_SECONDS:-20}"
+RECOVERY_TIMEOUT_SECONDS="${RECOVERY_TIMEOUT_SECONDS:-600}"
 
 RUN_ID="$(date +%Y%m%d-%H%M%S)"
-OUT="${ROOT_DIR}/logs/tests/pg-failover-${RUN_ID}"
-mkdir -p "${OUT}"
+OUT_DIR="${ROOT_DIR}/logs/tests/postgres-failover-${RUN_ID}"
+mkdir -p "${OUT_DIR}"
 
-STATE_CSV="${OUT}/state.csv"
-WRITES_CSV="${OUT}/writes.csv"
-WRITER_RAW_LOG="${OUT}/writer.raw.log"
-EVENTS_CSV="${OUT}/events.csv"
-SUMMARY_CSV="${OUT}/summary.csv"
-SUMMARY_TXT="${OUT}/summary.txt"
-WRITER_LOG_ERR="${OUT}/writer.logs.err"
+WRITES_CSV="${OUT_DIR}/writes.csv"
+EVENTS_CSV="${OUT_DIR}/events.csv"
+SUMMARY_CSV="${OUT_DIR}/summary.csv"
 
-WRITER_POD="pg-writer-${RUN_ID}"
-WATCH_PID=""
+TEST_TABLE="ha_failover_probe"
+JDBC_HOST="${PG_RW_SERVICE}.${NS}.svc.cluster.local"
+PGPORT="5432"
 
 log() {
-  echo "[$(date +%H:%M:%S)] $*"
+  echo "[$(date '+%H:%M:%S')] $*"
 }
 
 event() {
-  echo "$(date +%s.%N),$1,$2" >> "${EVENTS_CSV}"
+  local name="$1"
+  local details="${2:-}"
+  echo "$(date --iso-8601=seconds),${name},${details}" | tee -a "${EVENTS_CSV}" >/dev/null
+}
+
+fail() {
+  log "ERROR: $*" >&2
+  event "test_failed" "$*"
+  exit 1
 }
 
 cleanup() {
-  if [[ -n "${WATCH_PID}" ]]; then
-    kill "${WATCH_PID}" >/dev/null 2>&1 || true
+  if [[ -n "${WRITER_POD:-}" ]]; then
+    ${KC} delete pod "${WRITER_POD}" -n "${NS}" --ignore-not-found=true >/dev/null 2>&1 || true
   fi
-  ${KC} delete pod "${WRITER_POD}" -n "${NS}" --ignore-not-found --grace-period=0 --force >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
-safe_writer_logs() {
-  ${KC} logs "${WRITER_POD}" -n "${NS}" 2>/dev/null || true
-}
+# -------------------------------------------------------------
+# 0. Initialize output files
+# -------------------------------------------------------------
+echo "timestamp,epoch_ms,seq,duration_ms,result,phase,error" > "${WRITES_CSV}"
+echo "timestamp,event,details" > "${EVENTS_CSV}"
 
-run_psql() {
-  local pod_name="$1"
-  local sql="$2"
+event "test_started" "run_id=${RUN_ID}"
 
-  ${KC} run "${pod_name}" -n "${NS}" --image="${WRITER_IMAGE}" \
-    --restart=Never --rm -i --quiet \
-    --env="PGPASSWORD=${PGPASS}" --command -- \
-    psql "host=${RW_HOST} user=${DB_USER} dbname=${DB_NAME} connect_timeout=10" \
+log "Output directory: ${OUT_DIR}"
+log "PostgreSQL RW service: ${PG_RW_SERVICE}"
+log "Database: ${PG_DATABASE}"
+log "Writer interval: ${WRITE_INTERVAL}s"
+
+# -------------------------------------------------------------
+# 1. Preflight check
+# -------------------------------------------------------------
+log "Running preflight check..."
+if [[ -x "${SCRIPT_DIR}/preflight-ha.sh" ]]; then
+  "${SCRIPT_DIR}/preflight-ha.sh"
+else
+  fail "preflight-ha.sh not found or not executable."
+fi
+event "preflight_passed" ""
+
+# -------------------------------------------------------------
+# 2. Capture initial PostgreSQL state
+# -------------------------------------------------------------
+log "Capturing initial PostgreSQL state..."
+${KC} get cluster "${PG_CLUSTER}" -n "${NS}" | tee "${OUT_DIR}/initial-pg-cluster.txt"
+${KC} get pods -n "${NS}" -l "${POSTGRES_LABEL}" -L role -o wide | tee "${OUT_DIR}/initial-pg-pods.txt"
+${KC} get svc -n "${NS}" | grep "${PG_CLUSTER}" | tee "${OUT_DIR}/initial-pg-services.txt" || true
+
+PG_PHASE="$(${KC} get cluster "${PG_CLUSTER}" -n "${NS}" -o jsonpath='{.status.phase}' 2>/dev/null || echo "")"
+PG_READY="$(${KC} get cluster "${PG_CLUSTER}" -n "${NS}" -o jsonpath='{.status.readyInstances}' 2>/dev/null || echo "0")"
+
+[[ "${PG_PHASE}" == "Cluster in healthy state" ]] || fail "CNPG cluster is not healthy before test. Phase: ${PG_PHASE}"
+[[ "${PG_READY}" == "${PG_INSTANCES}" ]] || fail "Expected ${PG_INSTANCES} ready PostgreSQL instances, found ${PG_READY}."
+
+PRIMARY_POD="$(${KC} get pods -n "${NS}" -l "${POSTGRES_LABEL}" -L role --no-headers \
+  | awk '$NF=="primary" {print $1; exit}')"
+
+[[ -n "${PRIMARY_POD}" ]] || fail "Could not determine current PostgreSQL primary pod."
+
+PRIMARY_NODE="$(${KC} get pod "${PRIMARY_POD}" -n "${NS}" -o jsonpath='{.spec.nodeName}')"
+
+log "Initial primary pod: ${PRIMARY_POD}"
+log "Initial primary node: ${PRIMARY_NODE}"
+event "initial_primary_detected" "pod=${PRIMARY_POD};node=${PRIMARY_NODE}"
+
+# -------------------------------------------------------------
+# 3. Prepare test table
+# -------------------------------------------------------------
+log "Preparing test table..."
+
+DB_PASS="$(${KC} get secret "${DB_SECRET}" -n "${NS}" -o jsonpath='{.data.password}' | base64 -d)"
+
+ADMIN_POD="${PRIMARY_POD}"
+
+${KC} exec "${ADMIN_POD}" -n "${NS}" -- bash -c "
+  PGPASSWORD='${DB_PASS}' psql \
+    -h '${PG_RW_SERVICE}' \
+    -U '${PG_USERNAME}' \
+    -d '${PG_DATABASE}' \
     -v ON_ERROR_STOP=1 \
-    -v statement_timeout="${PSQL_STATEMENT_TIMEOUT_MS}" \
-    -tAc "${sql}"
+    -c \"CREATE TABLE IF NOT EXISTS ${TEST_TABLE} (
+          run_id text NOT NULL,
+          seq integer NOT NULL,
+          created_at timestamptz NOT NULL DEFAULT now(),
+          writer_pod text NOT NULL,
+          phase text NOT NULL,
+          PRIMARY KEY (run_id, seq)
+        );\"
+" >/dev/null
+
+event "test_table_prepared" "table=${TEST_TABLE}"
+
+# -------------------------------------------------------------
+# 4. Start writer pod
+# -------------------------------------------------------------
+WRITER_POD="pg-failover-writer-${RUN_ID}"
+
+log "Starting writer pod: ${WRITER_POD}"
+
+cat <<EOF | ${KC} apply -f - >/dev/null
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ${WRITER_POD}
+  namespace: ${NS}
+  labels:
+    app: postgres-failover-writer
+spec:
+  restartPolicy: Never
+  containers:
+    - name: writer
+      image: ${WRITER_IMAGE}
+      env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ${DB_SECRET}
+              key: password
+      command: ["bash", "-c"]
+      args:
+        - |
+          set +e
+
+          PHASE_FILE="/tmp/phase"
+          echo "before" > "\${PHASE_FILE}"
+
+          SEQ=0
+
+          while true; do
+            SEQ=\$((SEQ + 1))
+            TS=\$(date --iso-8601=seconds)
+            EPOCH_MS=\$(date +%s%3N)
+            PHASE=\$(cat "\${PHASE_FILE}" 2>/dev/null || echo "unknown")
+            START_MS=\$(date +%s%3N)
+
+            OUT=\$(psql \
+              -h "${JDBC_HOST}" \
+              -p "${PGPORT}" \
+              -U "${PG_USERNAME}" \
+              -d "${PG_DATABASE}" \
+              -v ON_ERROR_STOP=1 \
+              -qAt \
+              -c "INSERT INTO ${TEST_TABLE}(run_id, seq, writer_pod, phase) VALUES ('${RUN_ID}', \${SEQ}, '${WRITER_POD}', '\${PHASE}');" 2>&1)
+
+            RC=\$?
+            END_MS=\$(date +%s%3N)
+            DURATION_MS=\$((END_MS - START_MS))
+
+            if [ "\${RC}" -eq 0 ]; then
+              echo "\${TS},\${EPOCH_MS},\${SEQ},\${DURATION_MS},OK,\${PHASE},"
+            else
+              SAFE_OUT=\$(echo "\${OUT}" | tr ',' ';' | tr '\n' ' ')
+              echo "\${TS},\${EPOCH_MS},\${SEQ},\${DURATION_MS},FAIL,\${PHASE},psql_error_\${RC}:\${SAFE_OUT}"
+            fi
+
+            sleep ${WRITE_INTERVAL}
+          done
+EOF
+
+${KC} wait --for=condition=Ready pod/"${WRITER_POD}" -n "${NS}" --timeout=120s >/dev/null \
+  || fail "Writer pod did not become Ready."
+
+WRITER_NODE="$(${KC} get pod "${WRITER_POD}" -n "${NS}" -o jsonpath='{.spec.nodeName}')"
+log "Writer pod node: ${WRITER_NODE}"
+event "writer_started" "pod=${WRITER_POD};node=${WRITER_NODE}"
+
+if [[ "${WRITER_NODE}" == "${PRIMARY_NODE}" ]]; then
+  event "writer_on_primary_node" "writer_node=${WRITER_NODE};primary_node=${PRIMARY_NODE}"
+  log "WARNING: Writer pod is on the same node as the current primary."
+  log "This does not automatically invalidate the run, but it should be considered during analysis."
+fi
+
+collect_logs() {
+  ${KC} logs "${WRITER_POD}" -n "${NS}" 2>/dev/null \
+    | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}T' \
+    > "${OUT_DIR}/writer-current.log" || true
+
+  {
+    head -1 "${WRITES_CSV}"
+    cat "${OUT_DIR}/writer-current.log"
+  } > "${WRITES_CSV}.tmp"
+
+  awk '!seen[$0]++' "${WRITES_CSV}.tmp" > "${WRITES_CSV}"
 }
 
-# --- 0. Verify cluster health --------------------------------
-log "Checking initial cluster state..."
+set_writer_phase() {
+  local phase="$1"
+  ${KC} exec "${WRITER_POD}" -n "${NS}" -- bash -c "echo '${phase}' > /tmp/phase" >/dev/null 2>&1 || true
+}
 
-INIT_PHASE="$(${KC} get cluster/"${CLUSTER}" -n "${NS}" -o jsonpath='{.status.phase}' 2>/dev/null || echo '')"
-INIT_PRIMARY="$(${KC} get cluster/"${CLUSTER}" -n "${NS}" -o jsonpath='{.status.currentPrimary}' 2>/dev/null || echo '')"
-INIT_READY="$(${KC} get cluster/"${CLUSTER}" -n "${NS}" -o jsonpath='{.status.readyInstances}' 2>/dev/null || echo '0')"
-PG_INSTANCES="$(${KC} get cluster/"${CLUSTER}" -n "${NS}" -o jsonpath='{.spec.instances}' 2>/dev/null || echo '3')"
+# -------------------------------------------------------------
+# 5. Baseline period
+# -------------------------------------------------------------
+log "Baseline period: ${BASELINE_SECONDS}s"
+event "baseline_started" "seconds=${BASELINE_SECONDS}"
 
-if [[ -z "${INIT_PRIMARY}" || "${INIT_PHASE}" != "Cluster in healthy state" || "${INIT_READY}" != "${PG_INSTANCES}" ]]; then
-  echo "ERROR: cluster is not healthy before the test." >&2
-  echo "phase='${INIT_PHASE}', primary='${INIT_PRIMARY}', ready='${INIT_READY}/${PG_INSTANCES}'" >&2
-  exit 1
+sleep "${BASELINE_SECONDS}"
+collect_logs
+
+BASELINE_TOTAL="$(awk -F',' 'NR>1 && $6=="before" {count++} END {print count+0}' "${WRITES_CSV}")"
+BASELINE_FAILS="$(awk -F',' 'NR>1 && $6=="before" && $5=="FAIL" {count++} END {print count+0}' "${WRITES_CSV}")"
+
+event "baseline_finished" "total=${BASELINE_TOTAL};fails=${BASELINE_FAILS}"
+
+if (( BASELINE_TOTAL == 0 )); then
+  fail "No baseline write samples collected."
 fi
 
-log "Cluster healthy. Primary: ${INIT_PRIMARY} (${INIT_READY}/${PG_INSTANCES})."
-
-# --- 1. Read DB password -------------------------------------
-PGPASS="$(${KC} get secret "${DB_SECRET}" -n "${NS}" -o jsonpath='{.data.password}' 2>/dev/null | base64 -d || echo '')"
-if [[ -z "${PGPASS}" ]]; then
-  echo "ERROR: cannot read DB password from secret ${DB_SECRET}." >&2
-  exit 1
+if (( BASELINE_FAILS > 0 )); then
+  fail "Baseline contains failed writes. The run is not valid."
 fi
 
-# --- 2. Prepare isolated probe table -------------------------
-log "Preparing probe table for run_id=${RUN_ID}..."
+BASELINE_P50_MS="$(awk -F',' 'NR>1 && $6=="before" && $5=="OK" {print $4}' "${WRITES_CSV}" \
+  | sort -n | awk '{a[NR]=$1} END {if (NR==0) print "n/a"; else {idx=int(0.50*NR); if(idx<1) idx=1; print a[idx]}}')"
 
-SETUP_SQL="
-CREATE TABLE IF NOT EXISTS failover_probe (
-  id bigserial PRIMARY KEY,
-  run_id text NOT NULL,
-  attempt_no bigint NOT NULL,
-  inserted_at timestamptz DEFAULT now()
-);
-CREATE UNIQUE INDEX IF NOT EXISTS failover_probe_run_attempt_idx
-  ON failover_probe(run_id, attempt_no);
-DELETE FROM failover_probe WHERE run_id = '${RUN_ID}';
-"
+BASELINE_P95_MS="$(awk -F',' 'NR>1 && $6=="before" && $5=="OK" {print $4}' "${WRITES_CSV}" \
+  | sort -n | awk '{a[NR]=$1} END {if (NR==0) print "n/a"; else {idx=int(0.95*NR); if(idx<1) idx=1; print a[idx]}}')"
 
-SETUP_OK="false"
-for attempt in 1 2 3; do
-  if run_psql "pg-setup-${RUN_ID}-${attempt}" "${SETUP_SQL}" >/dev/null 2>&1; then
-    SETUP_OK="true"
+BASELINE_MAX_MS="$(awk -F',' 'NR>1 && $6=="before" && $5=="OK" {if($4>max) max=$4} END {if(max=="") print "n/a"; else print max}' "${WRITES_CSV}")"
+
+log "Baseline latency: p50=${BASELINE_P50_MS}ms, p95=${BASELINE_P95_MS}ms, max=${BASELINE_MAX_MS}ms"
+event "baseline_latency" "p50_ms=${BASELINE_P50_MS};p95_ms=${BASELINE_P95_MS};max_ms=${BASELINE_MAX_MS}"
+
+# -------------------------------------------------------------
+# 6. Inject primary failure
+# -------------------------------------------------------------
+log "Injecting failure: deleting current primary pod ${PRIMARY_POD}"
+set_writer_phase "during"
+
+INJECTION_EPOCH_MS="$(date +%s%3N)"
+INJECTION_TS="$(date --iso-8601=seconds)"
+
+event "failure_injected" "deleted_primary=${PRIMARY_POD};node=${PRIMARY_NODE}"
+
+${KC} delete pod "${PRIMARY_POD}" -n "${NS}" --wait=false >/dev/null
+
+# -------------------------------------------------------------
+# 7. Wait for new primary and full CNPG recovery
+# -------------------------------------------------------------
+log "Waiting for new primary and full cluster recovery, timeout ${RECOVERY_TIMEOUT_SECONDS}s..."
+
+NEW_PRIMARY_POD=""
+NEW_PRIMARY_NODE=""
+FAILOVER_DETECTED_EPOCH_MS=""
+CLUSTER_RECOVERY_EPOCH_MS=""
+RECOVERY_OK="false"
+
+for _ in $(seq 1 "${RECOVERY_TIMEOUT_SECONDS}"); do
+  CURRENT_PRIMARY="$(${KC} get pods -n "${NS}" -l "${POSTGRES_LABEL}" -L role --no-headers 2>/dev/null \
+    | awk '$NF=="primary" {print $1; exit}' || true)"
+
+  if [[ -n "${CURRENT_PRIMARY}" && "${CURRENT_PRIMARY}" != "${PRIMARY_POD}" && -z "${NEW_PRIMARY_POD}" ]]; then
+    NEW_PRIMARY_POD="${CURRENT_PRIMARY}"
+    NEW_PRIMARY_NODE="$(${KC} get pod "${NEW_PRIMARY_POD}" -n "${NS}" -o jsonpath='{.spec.nodeName}' 2>/dev/null || echo "")"
+    FAILOVER_DETECTED_EPOCH_MS="$(date +%s%3N)"
+    event "new_primary_detected" "pod=${NEW_PRIMARY_POD};node=${NEW_PRIMARY_NODE}"
+    log "New primary detected: ${NEW_PRIMARY_POD} on ${NEW_PRIMARY_NODE}"
+  fi
+
+  PG_PHASE_NOW="$(${KC} get cluster "${PG_CLUSTER}" -n "${NS}" -o jsonpath='{.status.phase}' 2>/dev/null || echo "")"
+  PG_READY_NOW="$(${KC} get cluster "${PG_CLUSTER}" -n "${NS}" -o jsonpath='{.status.readyInstances}' 2>/dev/null || echo "0")"
+
+  if [[ -n "${NEW_PRIMARY_POD}" && "${PG_PHASE_NOW}" == "Cluster in healthy state" && "${PG_READY_NOW}" == "${PG_INSTANCES}" ]]; then
+    CLUSTER_RECOVERY_EPOCH_MS="$(date +%s%3N)"
+    RECOVERY_OK="true"
     break
   fi
-  log "  setup attempt ${attempt} failed, retrying..."
-  sleep 3
+
+  sleep 1
 done
 
-if [[ "${SETUP_OK}" != "true" ]]; then
-  echo "ERROR: could not prepare probe table after retries." >&2
-  echo "Check DB connectivity: ${RW_HOST}" >&2
-  exit 1
+if [[ "${RECOVERY_OK}" == "true" ]]; then
+  CLUSTER_FULL_RECOVERY_S="$(awk -v a="${INJECTION_EPOCH_MS}" -v b="${CLUSTER_RECOVERY_EPOCH_MS}" 'BEGIN {printf "%.3f", (b-a)/1000}')"
+  log "CNPG cluster recovered after ${CLUSTER_FULL_RECOVERY_S}s."
+  event "cluster_recovery_completed" "seconds=${CLUSTER_FULL_RECOVERY_S}"
+else
+  CLUSTER_FULL_RECOVERY_S="n/a"
+  event "cluster_recovery_timeout" "timeout_seconds=${RECOVERY_TIMEOUT_SECONDS}"
 fi
 
-log "Probe table ready."
+# -------------------------------------------------------------
+# 8. Post-recovery observation
+# -------------------------------------------------------------
+set_writer_phase "after"
 
-# --- 3. Start writer pod -------------------------------------
-log "Starting writer pod ${WRITER_POD} against ${RW_HOST}..."
+log "Post-recovery observation: ${POST_RECOVERY_SECONDS}s"
+event "post_recovery_observation_started" "seconds=${POST_RECOVERY_SECONDS}"
 
-WRITER_SCRIPT=$(cat <<EOF2
-set -u
+sleep "${POST_RECOVERY_SECONDS}"
+collect_logs
 
-run_id='${RUN_ID}'
-rw_host='${RW_HOST}'
-db_user='${DB_USER}'
-db_name='${DB_NAME}'
-duration='${WRITER_DURATION}'
-interval='${WRITE_INTERVAL}'
-connect_timeout='${CONNECT_TIMEOUT}'
-statement_timeout_ms='${PSQL_STATEMENT_TIMEOUT_MS}'
+event "post_recovery_observation_finished" ""
 
-attempt=0
-end=\$((SECONDS + duration))
+# Stop writer to freeze logs.
+${KC} delete pod "${WRITER_POD}" -n "${NS}" --ignore-not-found=true >/dev/null 2>&1 || true
+WRITER_POD=""
 
-while [ "\$SECONDS" -lt "\$end" ] && [ ! -f /tmp/stop ]; do
-  attempt=\$((attempt + 1))
-  start_ts=\$(date +%s.%N)
+# -------------------------------------------------------------
+# 9. Capture final PostgreSQL state
+# -------------------------------------------------------------
+log "Capturing final PostgreSQL state..."
+${KC} get cluster "${PG_CLUSTER}" -n "${NS}" | tee "${OUT_DIR}/final-pg-cluster.txt"
+${KC} get pods -n "${NS}" -l "${POSTGRES_LABEL}" -L role -o wide | tee "${OUT_DIR}/final-pg-pods.txt"
 
-  if psql "host=\${rw_host} user=\${db_user} dbname=\${db_name} connect_timeout=\${connect_timeout}" \
-      -v ON_ERROR_STOP=1 \
-      -v statement_timeout="\${statement_timeout_ms}" \
-      -tAc "INSERT INTO failover_probe(run_id, attempt_no) VALUES ('\${run_id}', \${attempt});" >/dev/null 2>&1; then
-    result="OK"
+# -------------------------------------------------------------
+# 10. Verify committed rows
+# -------------------------------------------------------------
+log "Verifying committed rows..."
+
+# Use the current primary if available; otherwise any existing postgres pod.
+VERIFY_POD="$(${KC} get pods -n "${NS}" -l "${POSTGRES_LABEL}" -L role --no-headers 2>/dev/null \
+  | awk '$NF=="primary" {print $1; exit}')"
+
+if [[ -z "${VERIFY_POD}" ]]; then
+  VERIFY_POD="$(${KC} get pods -n "${NS}" -l "${POSTGRES_LABEL}" --no-headers 2>/dev/null | awk '{print $1; exit}')"
+fi
+
+[[ -n "${VERIFY_POD}" ]] || fail "Could not find PostgreSQL pod for verification."
+
+COMMITTED_ROWS="$(${KC} exec "${VERIFY_POD}" -n "${NS}" -- bash -c "
+  PGPASSWORD='${DB_PASS}' psql \
+    -h '${PG_RW_SERVICE}' \
+    -U '${PG_USERNAME}' \
+    -d '${PG_DATABASE}' \
+    -qAt \
+    -c \"SELECT count(*) FROM ${TEST_TABLE} WHERE run_id='${RUN_ID}';\"
+" | tr -d '[:space:]')"
+
+SUCCESSFUL_WRITES="$(awk -F',' 'NR>1 && $5=="OK" {count++} END {print count+0}' "${WRITES_CSV}")"
+FAILED_WRITES="$(awk -F',' 'NR>1 && $5=="FAIL" {count++} END {print count+0}' "${WRITES_CSV}")"
+TOTAL_ATTEMPTS="$(awk -F',' 'NR>1 {count++} END {print count+0}' "${WRITES_CSV}")"
+
+if [[ "${COMMITTED_ROWS}" == "${SUCCESSFUL_WRITES}" ]]; then
+  DATA_LOSS_CHECK="pass"
+else
+  DATA_LOSS_CHECK="fail"
+fi
+
+event "committed_rows_verified" "successful_writes=${SUCCESSFUL_WRITES};committed_rows=${COMMITTED_ROWS};result=${DATA_LOSS_CHECK}"
+
+# -------------------------------------------------------------
+# 11. Calculate downtime metrics
+# -------------------------------------------------------------
+
+# First failed write after failure injection.
+FIRST_FAIL_AFTER_INJECTION_MS="$(awk -F',' -v inj="${INJECTION_EPOCH_MS}" '
+  NR>1 && $2>=inj && $5=="FAIL" {print $2; exit}
+' "${WRITES_CSV}")"
+
+if [[ -n "${FIRST_FAIL_AFTER_INJECTION_MS}" ]]; then
+  LAST_OK_BEFORE_FAIL_MS="$(awk -F',' -v firstfail="${FIRST_FAIL_AFTER_INJECTION_MS}" '
+    NR>1 && $2<firstfail && $5=="OK" {last=$2}
+    END {print last}
+  ' "${WRITES_CSV}")"
+
+  FIRST_OK_AFTER_FAIL_MS="$(awk -F',' -v firstfail="${FIRST_FAIL_AFTER_INJECTION_MS}" '
+    NR>1 && $2>firstfail && $5=="OK" {print $2; exit}
+  ' "${WRITES_CSV}")"
+
+  if [[ -n "${LAST_OK_BEFORE_FAIL_MS}" && -n "${FIRST_OK_AFTER_FAIL_MS}" ]]; then
+    CLIENT_WRITE_DOWNTIME_S="$(awk -v a="${LAST_OK_BEFORE_FAIL_MS}" -v b="${FIRST_OK_AFTER_FAIL_MS}" 'BEGIN {printf "%.3f", (b-a)/1000}')"
   else
-    result="FAIL"
+    CLIENT_WRITE_DOWNTIME_S="n/a"
   fi
-
-  end_ts=\$(date +%s.%N)
-  duration_ms=\$(awk -v a="\${end_ts}" -v b="\${start_ts}" 'BEGIN{printf "%.0f", (a-b)*1000}')
-  echo "\${attempt},\${start_ts},\${end_ts},\${duration_ms},\${result}"
-
-  sleep "\${interval}"
-done
-EOF2
-)
-
-${KC} run "${WRITER_POD}" -n "${NS}" --image="${WRITER_IMAGE}" \
-  --restart=Never \
-  --env="PGPASSWORD=${PGPASS}" \
-  --command -- bash -c "${WRITER_SCRIPT}" >/dev/null
-
-log "Waiting for writer pod to become Ready..."
-if ! ${KC} wait --for=condition=Ready pod/"${WRITER_POD}" -n "${NS}" --timeout=180s; then
-  echo "ERROR: writer pod did not become Ready." >&2
-  ${KC} get pod "${WRITER_POD}" -n "${NS}" -o wide >&2 || true
-  ${KC} describe pod "${WRITER_POD}" -n "${NS}" >&2 || true
-  exit 1
-fi
-
-log "Waiting for ${PRE_OK_REQUIRED} stable OK writes before injection..."
-PRE_OK_COUNT=0
-
-for i in $(seq 1 180); do
-  PRE_OK_COUNT="$(safe_writer_logs | awk -F',' '$5=="OK"{c++} END{print c+0}')"
-
-  if (( PRE_OK_COUNT >= PRE_OK_REQUIRED )); then
-    log "Writer is stable (${PRE_OK_COUNT} OK writes)."
-    break
-  fi
-
-  if (( i % 10 == 0 )); then
-    log "  writer OK count after ${i}s: ${PRE_OK_COUNT}/${PRE_OK_REQUIRED}"
-    ${KC} get pod "${WRITER_POD}" -n "${NS}" -o wide || true
-  fi
-
-  sleep 1
-done
-
-if (( PRE_OK_COUNT < PRE_OK_REQUIRED )); then
-  echo "ERROR: writer did not produce ${PRE_OK_REQUIRED} successful writes before injection." >&2
-  echo "Writer pod status:" >&2
-  ${KC} get pod "${WRITER_POD}" -n "${NS}" -o wide >&2 || true
-  echo "Writer logs:" >&2
-  safe_writer_logs >&2
-  exit 1
-fi
-
-# --- 4. Start CNPG state watcher -----------------------------
-echo "timestamp_epoch,phase,currentPrimary,readyInstances" > "${STATE_CSV}"
-echo "timestamp_epoch,event,detail" > "${EVENTS_CSV}"
-event "initial_primary" "${INIT_PRIMARY}"
-
-(
-  ${KC} get cluster/"${CLUSTER}" -n "${NS}" \
-    -o jsonpath='{.status.phase}|{.status.currentPrimary}|{.status.readyInstances}{"\n"}' \
-    --watch 2>/dev/null | while IFS='|' read -r p cp ri; do
-      echo "$(date +%s.%N),${p},${cp},${ri}" >> "${STATE_CSV}"
-    done
-) &
-WATCH_PID=$!
-
-LAST_OK_BEFORE="$(safe_writer_logs | awk -F',' '$5=="OK"{v=$3} END{print v}')"
-if [[ -z "${LAST_OK_BEFORE}" ]]; then
-  echo "ERROR: cannot determine last successful write before injection." >&2
-  exit 1
-fi
-
-# --- 5. Inject primary failure -------------------------------
-sleep 2
-T_INJECT="$(date +%s.%N)"
-event "failure_injected" "force_delete_primary=${INIT_PRIMARY}"
-
-log "==> INJECTING FAILURE: force-deleting primary ${INIT_PRIMARY}"
-${KC} delete pod "${INIT_PRIMARY}" -n "${NS}" --grace-period=0 --force >/dev/null
-
-# --- 6. Wait for client-visible recovery ---------------------
-log "Waiting for first successful write after failure injection (up to ${MAX_WAIT}s)..."
-
-FIRST_OK_AFTER=""
-START_WAIT="$(date +%s.%N)"
-
-while :; do
-  FIRST_OK_AFTER="$(safe_writer_logs | awk -F',' -v inj="${T_INJECT}" '$5=="OK" && $2 > inj {print $2; exit}')"
-
-  if [[ -n "${FIRST_OK_AFTER}" ]]; then
-    event "client_write_recovered" "first_ok_after_start=${FIRST_OK_AFTER}"
-    log "Client-visible writes recovered."
-    break
-  fi
-
-  NOW="$(date +%s.%N)"
-  WAITED="$(awk -v a="${NOW}" -v b="${START_WAIT}" 'BEGIN{printf "%.0f", a-b}')"
-
-  if (( WAITED > MAX_WAIT )); then
-    event "client_write_recovery_timeout" "max_wait=${MAX_WAIT}"
-    log "WARNING: no successful write observed within ${MAX_WAIT}s."
-    break
-  fi
-
-  sleep 1
-done
-
-# --- 7. Wait for full cluster recovery -----------------------
-log "Checking CNPG full recovery state (secondary metric)..."
-
-NEW_PRIMARY=""
-CLUSTER_RECOVERED_AT=""
-START_CLUSTER_WAIT="$(date +%s.%N)"
-
-while :; do
-  PHASE="$(${KC} get cluster/"${CLUSTER}" -n "${NS}" -o jsonpath='{.status.phase}' 2>/dev/null || echo '')"
-  CUR_PRIMARY="$(${KC} get cluster/"${CLUSTER}" -n "${NS}" -o jsonpath='{.status.currentPrimary}' 2>/dev/null || echo '')"
-  READY="$(${KC} get cluster/"${CLUSTER}" -n "${NS}" -o jsonpath='{.status.readyInstances}' 2>/dev/null || echo '0')"
-
-  if [[ -n "${CUR_PRIMARY}" && "${CUR_PRIMARY}" != "${INIT_PRIMARY}" ]]; then
-    NEW_PRIMARY="${CUR_PRIMARY}"
-  fi
-
-  if [[ "${PHASE}" == "Cluster in healthy state" && "${READY}" == "${PG_INSTANCES}" && -n "${NEW_PRIMARY}" ]]; then
-    CLUSTER_RECOVERED_AT="$(date +%s.%N)"
-    event "cluster_recovered" "new_primary=${NEW_PRIMARY}"
-    log "Cluster healthy again. New primary: ${NEW_PRIMARY}"
-    break
-  fi
-
-  NOW="$(date +%s.%N)"
-  WAITED="$(awk -v a="${NOW}" -v b="${START_CLUSTER_WAIT}" 'BEGIN{printf "%.0f", a-b}')"
-
-  if (( WAITED > MAX_WAIT )); then
-    event "cluster_recovery_timeout" "phase=${PHASE};primary=${CUR_PRIMARY};ready=${READY}/${PG_INSTANCES}"
-    log "WARNING: cluster did not report full recovery within ${MAX_WAIT}s."
-    break
-  fi
-
-  sleep 2
-done
-
-log "Observing for ${OBSERVE_AFTER}s more..."
-sleep "${OBSERVE_AFTER}"
-
-# --- 8. Stop writer and watcher before counting rows ----------
-log "Stopping writer gracefully before collecting final metrics..."
-
-if [[ -n "${WATCH_PID}" ]]; then
-  kill "${WATCH_PID}" >/dev/null 2>&1 || true
-  WATCH_PID=""
-fi
-
-${KC} exec "${WRITER_POD}" -n "${NS}" -- touch /tmp/stop >/dev/null 2>&1 || true
-
-for i in $(seq 1 45); do
-  WRITER_PHASE="$(${KC} get pod "${WRITER_POD}" -n "${NS}" -o jsonpath='{.status.phase}' 2>/dev/null || echo '')"
-  if [[ "${WRITER_PHASE}" == "Succeeded" || "${WRITER_PHASE}" == "Failed" ]]; then
-    break
-  fi
-  sleep 1
-done
-
-log "Capturing writer log..."
-if ! ${KC} logs "${WRITER_POD}" -n "${NS}" > "${WRITER_RAW_LOG}" 2>"${WRITER_LOG_ERR}"; then
-  echo "ERROR: could not capture writer logs." >&2
-  cat "${WRITER_LOG_ERR}" >&2 || true
-  ${KC} get pod "${WRITER_POD}" -n "${NS}" -o wide >&2 || true
-  exit 1
-fi
-
-${KC} delete pod "${WRITER_POD}" -n "${NS}" --ignore-not-found --grace-period=0 --force >/dev/null 2>&1 || true
-
-# --- 9. Build writes.csv -------------------------------------
-log "Collecting writer results..."
-
-echo "attempt_no,start_ts,end_ts,duration_ms,result,elapsed_start_s,elapsed_end_s,period" > "${WRITES_CSV}"
-
-awk -F',' -v inj="${T_INJECT}" '
-  NF >= 5 {
-    attempt_no=$1
-    start_ts=$2
-    end_ts=$3
-    duration_ms=$4
-    result=$5
-
-    elapsed_start=start_ts-inj
-    elapsed_end=end_ts-inj
-
-    if (end_ts < inj) {
-      period="before"
-    } else if (start_ts > inj) {
-      period="after"
-    } else {
-      period="overlap"
-    }
-
-    printf "%s,%s,%s,%s,%s,%.3f,%.3f,%s\n",
-      attempt_no,start_ts,end_ts,duration_ms,result,elapsed_start,elapsed_end,period
-  }
-' "${WRITER_RAW_LOG}" >> "${WRITES_CSV}"
-
-WRITE_TOTAL="$(awk -F',' 'NR>1{c++} END{print c+0}' "${WRITES_CSV}")"
-if (( WRITE_TOTAL == 0 )); then
-  echo "ERROR: no writer log lines were collected. The run is invalid." >&2
-  exit 1
-fi
-
-# --- 10. Compute metrics -------------------------------------
-SUCCESSFUL_WRITES="$(awk -F',' 'NR>1 && $5=="OK"{c++} END{print c+0}' "${WRITES_CSV}")"
-FAILED_WRITES="$(awk -F',' 'NR>1 && $5=="FAIL"{c++} END{print c+0}' "${WRITES_CSV}")"
-FAILS_AFTER_INJECTION="$(awk -F',' 'NR>1 && $5=="FAIL" && $8=="after"{c++} END{print c+0}' "${WRITES_CSV}")"
-OK_BEFORE_COUNT="$(awk -F',' 'NR>1 && $5=="OK" && $8=="before"{c++} END{print c+0}' "${WRITES_CSV}")"
-OK_AFTER_COUNT="$(awk -F',' 'NR>1 && $5=="OK" && $8=="after"{c++} END{print c+0}' "${WRITES_CSV}")"
-OVERLAP_COUNT="$(awk -F',' 'NR>1 && $8=="overlap"{c++} END{print c+0}' "${WRITES_CSV}")"
-
-LAST_OK_BEFORE_LOG="$(awk -F',' 'NR>1 && $5=="OK" && $8=="before"{v=$3} END{print v}' "${WRITES_CSV}")"
-FIRST_OK_AFTER_LOG="$(awk -F',' 'NR>1 && $5=="OK" && $8=="after"{print $2; exit}' "${WRITES_CSV}")"
-
-if [[ -n "${LAST_OK_BEFORE_LOG}" && -n "${FIRST_OK_AFTER_LOG}" ]]; then
-  CLIENT_DOWNTIME="$(awk -v a="${FIRST_OK_AFTER_LOG}" -v b="${LAST_OK_BEFORE_LOG}" 'BEGIN{printf "%.3f", a-b}')"
 else
-  CLIENT_DOWNTIME="n/a"
+  CLIENT_WRITE_DOWNTIME_S="0.000"
 fi
 
-if [[ -n "${CLUSTER_RECOVERED_AT}" ]]; then
-  CLUSTER_RECOVERY_S="$(awk -v a="${CLUSTER_RECOVERED_AT}" -v b="${T_INJECT}" 'BEGIN{printf "%.3f", a-b}')"
-else
-  CLUSTER_RECOVERY_S="n/a"
-fi
+FAILED_WRITES_AFTER_INJECTION="$(awk -F',' -v inj="${INJECTION_EPOCH_MS}" '
+  NR>1 && $2>=inj && $5=="FAIL" {count++}
+  END {print count+0}
+' "${WRITES_CSV}")"
 
-if [[ -n "${FIRST_OK_AFTER_LOG}" ]]; then
-  SECONDARY_FAILS_AFTER_RECOVERY="$(awk -F',' -v first="${FIRST_OK_AFTER_LOG}" '
-    NR>1 && $5=="FAIL" && $2 > first {c++} END{print c+0}' "${WRITES_CSV}")"
-else
-  SECONDARY_FAILS_AFTER_RECOVERY="n/a"
-fi
+AFTER_FAILS="$(awk -F',' 'NR>1 && $6=="after" && $5=="FAIL" {count++} END {print count+0}' "${WRITES_CSV}")"
 
-# Count only rows belonging to this run_id.
-ROWS="n/a"
-for attempt in 1 2 3 4 5; do
-  R="$(run_psql "pg-check-${RUN_ID}-${attempt}" \
-    "SELECT count(*) FROM failover_probe WHERE run_id = '${RUN_ID}';" \
-    2>/dev/null | tr -d '[:space:]' || echo '')"
+POST_RECOVERY_P95_MS="$(awk -F',' 'NR>1 && $6=="after" && $5=="OK" {print $4}' "${WRITES_CSV}" \
+  | sort -n | awk '{a[NR]=$1} END {if (NR==0) print "n/a"; else {idx=int(0.95*NR); if(idx<1) idx=1; print a[idx]}}')"
 
-  if [[ -n "${R}" && "${R}" =~ ^[0-9]+$ ]]; then
-    ROWS="${R}"
-    break
-  fi
-
-  sleep 3
-done
-
-DATA_LOSS_CHECK="UNKNOWN"
-if [[ "${ROWS}" =~ ^[0-9]+$ ]]; then
-  if [[ "${ROWS}" == "${SUCCESSFUL_WRITES}" ]]; then
-    DATA_LOSS_CHECK="PASS"
-  else
-    DATA_LOSS_CHECK="FAIL"
-  fi
-fi
-
+# -------------------------------------------------------------
+# 12. Determine run validity
+# -------------------------------------------------------------
 RUN_VALID="true"
 INVALID_REASON=""
 
-if (( OK_BEFORE_COUNT < PRE_OK_REQUIRED )); then
+if (( BASELINE_FAILS > 0 )); then
   RUN_VALID="false"
-  INVALID_REASON="${INVALID_REASON}writer_not_stable_before_injection;"
+  INVALID_REASON="${INVALID_REASON}baseline_failures;"
 fi
 
-if [[ "${CLIENT_DOWNTIME}" == "n/a" ]]; then
+if [[ "${RECOVERY_OK}" != "true" ]]; then
   RUN_VALID="false"
-  INVALID_REASON="${INVALID_REASON}no_client_recovery_observed;"
+  INVALID_REASON="${INVALID_REASON}cluster_recovery_timeout;"
 fi
 
-if [[ "${DATA_LOSS_CHECK}" != "PASS" ]]; then
+if [[ "${DATA_LOSS_CHECK}" != "pass" ]]; then
   RUN_VALID="false"
   INVALID_REASON="${INVALID_REASON}successful_writes_do_not_match_committed_rows;"
 fi
 
-if [[ -z "${NEW_PRIMARY}" ]]; then
+if (( AFTER_FAILS > 0 )); then
   RUN_VALID="false"
-  INVALID_REASON="${INVALID_REASON}new_primary_not_observed;"
+  INVALID_REASON="${INVALID_REASON}post_recovery_failures;"
 fi
 
-if [[ -z "${INVALID_REASON}" ]]; then
-  INVALID_REASON="none"
+if [[ "${CLIENT_WRITE_DOWNTIME_S}" == "n/a" ]]; then
+  RUN_VALID="false"
+  INVALID_REASON="${INVALID_REASON}downtime_not_measurable;"
 fi
 
-# --- 11. Write summary ---------------------------------------
+if (( TOTAL_ATTEMPTS == 0 )); then
+  RUN_VALID="false"
+  INVALID_REASON="${INVALID_REASON}no_write_samples;"
+fi
+
+# -------------------------------------------------------------
+# 13. Write summary
+# -------------------------------------------------------------
 {
   echo "metric,value"
   echo "run_id,${RUN_ID}"
-  echo "run_valid,${RUN_VALID}"
-  echo "invalid_reason,${INVALID_REASON}"
-  echo "initial_primary,${INIT_PRIMARY}"
-  echo "new_primary,${NEW_PRIMARY:-n/a}"
-  echo "instances,${PG_INSTANCES}"
-  echo "client_write_downtime_s,${CLIENT_DOWNTIME}"
-  echo "cluster_full_recovery_s,${CLUSTER_RECOVERY_S}"
-  echo "failed_writes_total,${FAILED_WRITES}"
-  echo "failed_writes_after_injection,${FAILS_AFTER_INJECTION}"
-  echo "secondary_fails_after_recovery,${SECONDARY_FAILS_AFTER_RECOVERY}"
+  echo "test,postgres_primary_failover"
+  echo "namespace,${NS}"
+  echo "cluster,${PG_CLUSTER}"
+  echo "rw_service,${PG_RW_SERVICE}"
+  echo "database,${PG_DATABASE}"
+  echo "test_table,${TEST_TABLE}"
+  echo "writer_pod,pg-failover-writer-${RUN_ID}"
+  echo "writer_node,${WRITER_NODE}"
+  echo "initial_primary_pod,${PRIMARY_POD}"
+  echo "initial_primary_node,${PRIMARY_NODE}"
+  echo "new_primary_pod,${NEW_PRIMARY_POD:-n/a}"
+  echo "new_primary_node,${NEW_PRIMARY_NODE:-n/a}"
+  echo "baseline_seconds,${BASELINE_SECONDS}"
+  echo "post_recovery_seconds,${POST_RECOVERY_SECONDS}"
+  echo "write_interval_seconds,${WRITE_INTERVAL}"
+  echo "baseline_total_writes,${BASELINE_TOTAL}"
+  echo "baseline_failed_writes,${BASELINE_FAILS}"
+  echo "baseline_write_p50_ms,${BASELINE_P50_MS}"
+  echo "baseline_write_p95_ms,${BASELINE_P95_MS}"
+  echo "baseline_write_max_ms,${BASELINE_MAX_MS}"
+  echo "total_write_attempts,${TOTAL_ATTEMPTS}"
   echo "successful_writes,${SUCCESSFUL_WRITES}"
-  echo "total_write_attempts,${WRITE_TOTAL}"
-  echo "committed_rows_for_run_id,${ROWS}"
+  echo "failed_writes,${FAILED_WRITES}"
+  echo "failed_writes_after_injection,${FAILED_WRITES_AFTER_INJECTION}"
+  echo "committed_rows,${COMMITTED_ROWS}"
   echo "data_loss_check,${DATA_LOSS_CHECK}"
-  echo "pre_failure_ok_count,${OK_BEFORE_COUNT}"
-  echo "post_failure_ok_count,${OK_AFTER_COUNT}"
-  echo "overlap_attempt_count,${OVERLAP_COUNT}"
-  echo "max_wait_s,${MAX_WAIT}"
-  echo "observe_after_s,${OBSERVE_AFTER}"
-  echo "write_interval_s,${WRITE_INTERVAL}"
-  echo "connect_timeout_s,${CONNECT_TIMEOUT}"
-  echo "statement_timeout_ms,${PSQL_STATEMENT_TIMEOUT_MS}"
+  echo "client_write_downtime_s,${CLIENT_WRITE_DOWNTIME_S}"
+  echo "cluster_full_recovery_s,${CLUSTER_FULL_RECOVERY_S}"
+  echo "post_recovery_failed_writes,${AFTER_FAILS}"
+  echo "post_recovery_write_p95_ms,${POST_RECOVERY_P95_MS}"
+  echo "run_valid,${RUN_VALID}"
+  echo "invalid_reason,${INVALID_REASON:-none}"
 } > "${SUMMARY_CSV}"
 
-{
-  echo "============================================================"
-  echo " TEST: Primary PostgreSQL pod failure (CNPG failover)"
-  echo " Run ID: ${RUN_ID}"
-  echo "============================================================"
-  echo ""
-  echo "Initial primary:        ${INIT_PRIMARY}"
-  echo "New primary:            ${NEW_PRIMARY:-n/a}"
-  echo "Instances:              ${PG_INSTANCES}"
-  echo "Run valid:              ${RUN_VALID}"
-  echo "Invalid reason:         ${INVALID_REASON}"
-  echo ""
-  echo "CLIENT-SIDE MEASUREMENT (primary metric):"
-  echo "  Write downtime (s):              ${CLIENT_DOWNTIME}"
-  echo "  Failed writes after injection:   ${FAILS_AFTER_INJECTION}"
-  echo "  Successful writes:               ${SUCCESSFUL_WRITES}"
-  echo "  Total write attempts:            ${WRITE_TOTAL}"
-  echo ""
-  echo "CONSISTENCY CHECK:"
-  echo "  Committed rows for run_id:       ${ROWS}"
-  echo "  Data-loss check:                 ${DATA_LOSS_CHECK}"
-  echo ""
-  echo "SECONDARY OBSERVATIONS:"
-  echo "  CNPG full recovery (s):          ${CLUSTER_RECOVERY_S}"
-  echo "  Fails after first recovery:      ${SECONDARY_FAILS_AFTER_RECOVERY}"
-  echo "  Overlap attempts:                ${OVERLAP_COUNT}"
-  echo ""
-  echo "CSV files:"
-  echo "  writer.raw.log — raw writer output"
-  echo "  writes.csv     — every write attempt with timestamps"
-  echo "  state.csv      — CNPG cluster state timeline"
-  echo "  events.csv     — failure injection and recovery events"
-  echo "  summary.csv    — machine-readable metrics"
-} | tee "${SUMMARY_TXT}"
+event "test_finished" "run_valid=${RUN_VALID};downtime=${CLIENT_WRITE_DOWNTIME_S};data_loss=${DATA_LOSS_CHECK}"
 
-log "Done. Results in: ${OUT}"
+# -------------------------------------------------------------
+# 14. Print final report
+# -------------------------------------------------------------
+echo ""
+echo "============================================================"
+echo " POSTGRESQL PRIMARY FAILOVER TEST FINISHED"
+echo "============================================================"
+echo "Run ID:                       ${RUN_ID}"
+echo "Output directory:             ${OUT_DIR}"
+echo "Initial primary pod:          ${PRIMARY_POD}"
+echo "Initial primary node:         ${PRIMARY_NODE}"
+echo "New primary pod:              ${NEW_PRIMARY_POD:-n/a}"
+echo "New primary node:             ${NEW_PRIMARY_NODE:-n/a}"
+echo "Writer node:                  ${WRITER_NODE}"
+echo "Total write attempts:         ${TOTAL_ATTEMPTS}"
+echo "Successful writes:            ${SUCCESSFUL_WRITES}"
+echo "Failed writes:                ${FAILED_WRITES}"
+echo "Failed writes after failure:  ${FAILED_WRITES_AFTER_INJECTION}"
+echo "Committed rows:               ${COMMITTED_ROWS}"
+echo "Data loss check:              ${DATA_LOSS_CHECK}"
+echo "Client write downtime:        ${CLIENT_WRITE_DOWNTIME_S}s"
+echo "Cluster full recovery:        ${CLUSTER_FULL_RECOVERY_S}s"
+echo "Baseline p95 latency:         ${BASELINE_P95_MS}ms"
+echo "Post-recovery p95 latency:    ${POST_RECOVERY_P95_MS}ms"
+echo "Run valid:                    ${RUN_VALID}"
+echo "Invalid reason:               ${INVALID_REASON:-none}"
+echo "============================================================"
+echo ""
+echo "Generated files:"
+echo "  ${WRITES_CSV}"
+echo "  ${EVENTS_CSV}"
+echo "  ${SUMMARY_CSV}"
+echo ""
+
+if [[ "${RUN_VALID}" != "true" ]]; then
+  exit 2
+fi

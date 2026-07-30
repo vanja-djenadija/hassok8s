@@ -1,14 +1,6 @@
 #!/usr/bin/env bash
-# =============================================================
-#  04 — Namespace, Secrets i TLS certifikat
-#  Pokrenuti SAMO na n00.
-#
-#  Upotreba:
-#    bash 04-secrets.sh <db-lozinka> <admin-lozinka>
-#  ili kroz okruženje:
-#    KC_DB_PASSWORD=... KC_ADMIN_PASSWORD=... bash 04-secrets.sh
-# =============================================================
 set -euo pipefail
+umask 077
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/../config.env"
@@ -19,8 +11,9 @@ DB_PASS="${1:-${KC_DB_PASSWORD:-}}"
 ADMIN_PASS="${2:-${KC_ADMIN_PASSWORD:-}}"
 
 if [[ -z "${DB_PASS}" || -z "${ADMIN_PASS}" ]]; then
-  echo "GREŠKA: nedostaju lozinke." >&2
-  echo "Upotreba: $0 <db-lozinka> <admin-lozinka>" >&2
+  echo "ERROR: missing passwords." >&2
+  echo "Usage: $0 <db-password> <admin-password>" >&2
+  echo "Alternative: KC_DB_PASSWORD='...' KC_ADMIN_PASSWORD='...' $0" >&2
   exit 1
 fi
 
@@ -28,7 +21,7 @@ echo "==> Namespace '${NAMESPACE}'"
 ${KC} create namespace "${NAMESPACE}" \
   --dry-run=client -o yaml | ${KC} apply -f -
 
-echo "==> Secret: kredencijali baze (keycloak-db-secret)"
+echo "==> Secret: database credentials (keycloak-db-secret)"
 ${KC} create secret generic keycloak-db-secret \
   --type=kubernetes.io/basic-auth \
   --from-literal=username="${PG_USERNAME}" \
@@ -36,7 +29,7 @@ ${KC} create secret generic keycloak-db-secret \
   -n "${NAMESPACE}" \
   --dry-run=client -o yaml | ${KC} apply -f -
 
-echo "==> Secret: admin kredencijali (keycloak-admin-secret)"
+echo "==> Secret: admin credentials (keycloak-admin-secret)"
 ${KC} create secret generic keycloak-admin-secret \
   --type=kubernetes.io/basic-auth \
   --from-literal=username="${KEYCLOAK_ADMIN_USER}" \
@@ -44,8 +37,8 @@ ${KC} create secret generic keycloak-admin-secret \
   -n "${NAMESPACE}" \
   --dry-run=client -o yaml | ${KC} apply -f -
 
-echo "==> TLS certifikat (self-signed) za ${KEYCLOAK_HOSTNAME}"
-# Za produkciju zamijeniti važećim certifikatom (cert-manager / Let's Encrypt).
+echo "==> TLS certificate (self-signed) for ${KEYCLOAK_HOSTNAME}"
+echo "    For production, replace this with a trusted certificate, for example via cert-manager / Let's Encrypt."
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "${TMP_DIR}"' EXIT
 
@@ -62,7 +55,7 @@ ${KC} create secret tls keycloak-tls \
   --dry-run=client -o yaml | ${KC} apply -f -
 
 echo ""
-echo "==> Provjera"
+echo "==> Verification"
 ${KC} get secrets -n "${NAMESPACE}"
 echo ""
-echo "DONE: namespace i Secrets su kreirani."
+echo "DONE: namespace and Secrets have been created."

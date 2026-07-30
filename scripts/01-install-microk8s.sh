@@ -1,32 +1,39 @@
 #!/usr/bin/env bash
-# =============================================================
-#  01 — Instalacija microk8s
-#  Pokrenuti na SVAKOM čvoru (n00, n01, n02).
-#  microk8s sam odrađuje pripremu koju kod kubeadm-a radimo ručno
-#  (containerd, mrežni sloj, CNI). Zato je ovaj korak kratak.
-# =============================================================
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/../config.env"
 
-echo "==> [1/4] Instalacija microk8s (kanal ${MICROK8S_CHANNEL})"
-# snap je predinstaliran na Ubuntu serverima.
-snap install microk8s --classic --channel="${MICROK8S_CHANNEL}"
+if [[ "${EUID}" -ne 0 ]]; then
+  echo "ERROR: run this script as root or via sudo." >&2
+  exit 1
+fi
 
-echo "==> [2/4] Dozvola trenutnom korisniku da koristi microk8s"
-# Dodaje korisnika u grupu 'microk8s' da ne mora 'sudo' svaki put.
-usermod -a -G microk8s "${SUDO_USER:-$USER}" || true
-mkdir -p "/home/${SUDO_USER:-$USER}/.kube" || true
-chown -R "${SUDO_USER:-$USER}" "/home/${SUDO_USER:-$USER}/.kube" || true
+RUN_USER="${SUDO_USER:-${USER}}"
+RUN_HOME="$(getent passwd "${RUN_USER}" | cut -d: -f6 || true)"
+if [[ -z "${RUN_HOME}" ]]; then
+  RUN_HOME="/home/${RUN_USER}"
+fi
 
-echo "==> [3/4] Čekanje da microk8s bude spreman"
+echo "==> [1/4] Installing microk8s (channel ${MICROK8S_CHANNEL})"
+if snap list microk8s >/dev/null 2>&1; then
+  echo "    microk8s is already installed; skipping installation."
+else
+  snap install microk8s --classic --channel="${MICROK8S_CHANNEL}"
+fi
+
+echo "==> [2/4] Allowing user '${RUN_USER}' to use microk8s"
+usermod -a -G microk8s "${RUN_USER}" || true
+mkdir -p "${RUN_HOME}/.kube" || true
+chown -R "${RUN_USER}:${RUN_USER}" "${RUN_HOME}/.kube" || true
+
+echo "==> [3/4] Waiting for microk8s to become ready"
 microk8s status --wait-ready --timeout 300
 
-echo "==> [4/4] Provjera"
-microk8s kubectl get nodes
+echo "==> [4/4] Verification"
+microk8s kubectl get nodes -o wide
 
 echo ""
-echo "DONE: microk8s instaliran na $(hostname)."
-echo "Napomena: odjavite se i prijavite ponovo (ili 'newgrp microk8s')"
-echo "da bi članstvo u grupi 'microk8s' stupilo na snagu."
+echo "DONE: microk8s installed/verified on $(hostname)."
+echo "Note: log out and log back in, or run 'newgrp microk8s',"
+echo "so that the microk8s group membership takes effect."

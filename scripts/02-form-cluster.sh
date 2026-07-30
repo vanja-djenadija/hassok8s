@@ -1,40 +1,63 @@
 #!/usr/bin/env bash
-# =============================================================
-#  02 — Formiranje HA klastera
-#  Pokrenuti SAMO na prvom čvoru (n00).
-#  Generiše komande za pridruživanje koje se pokreću na n01 i n02.
-#
-#  microk8s automatski uključuje HA kontrolnu ravan (dqlite)
-#  kada klaster dostigne tri čvora. Nema ručne etcd/keepalived
-#  konfiguracije kao kod kubeadm-a.
-# =============================================================
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/../config.env"
 
-echo "==> Generisanje tokena za pridruživanje n01"
-echo "    Na čvoru ${NODE1_NAME} (${NODE1_IP}) pokrenite komandu koju"
-echo "    ispiše sljedeća linija:"
+KC="microk8s kubectl"
+
+echo "==> Checking the initial node"
+microk8s status --wait-ready --timeout 300
+${KC} get nodes -o wide
+
+echo ""
+echo "==> Generating join token for ${NODE1_NAME} (${NODE1_IP})"
+echo "    On node ${NODE1_NAME}, run the command printed below:"
 echo ""
 microk8s add-node
+
 echo ""
 echo "------------------------------------------------------------"
-echo " Pokrenite gornju 'microk8s join ...' komandu na n01."
-echo " Zatim se vratite ovdje i pritisnite ENTER za token za n02."
+echo " Run the 'microk8s join ...' command above on ${NODE1_NAME}."
+echo " Then return here and press ENTER to generate the token for ${NODE2_NAME}."
 echo "------------------------------------------------------------"
 read -r _
 
-echo "==> Generisanje tokena za pridruživanje n02"
+echo "==> Generating join token for ${NODE2_NAME} (${NODE2_IP})"
+echo "    On node ${NODE2_NAME}, run the command printed below:"
+echo ""
 microk8s add-node
+
 echo ""
 echo "------------------------------------------------------------"
-echo " Pokrenite gornju 'microk8s join ...' komandu na n02."
+echo " Run the 'microk8s join ...' command above on ${NODE2_NAME}."
+echo " When the node has joined, return here and press ENTER."
 echo "------------------------------------------------------------"
+read -r _
+
+echo "==> Waiting for all three nodes to become Ready"
+MAX_TRIES=120
+READY_NODES="0"
+for i in $(seq 1 "${MAX_TRIES}"); do
+  READY_NODES="$(${KC} get nodes --no-headers 2>/dev/null | awk '$2=="Ready"{c++} END{print c+0}')"
+  TOTAL_NODES="$(${KC} get nodes --no-headers 2>/dev/null | wc -l | tr -d ' ')"
+  echo "    [$i/${MAX_TRIES}] Ready nodes: ${READY_NODES}/3 (registered total: ${TOTAL_NODES})"
+  if [[ "${READY_NODES}" == "3" ]]; then
+    break
+  fi
+  sleep 5
+done
+
+if [[ "${READY_NODES}" != "3" ]]; then
+  echo "ERROR: not all three nodes became Ready." >&2
+  ${KC} get nodes -o wide >&2 || true
+  exit 1
+fi
+
 echo ""
-echo "Kada oba čvora budu pridružena, provjerite stanje sa:"
-echo "    microk8s kubectl get nodes"
-echo "    microk8s status"
+echo "==> Cluster state"
+${KC} get nodes -o wide
+microk8s status
+
 echo ""
-echo "Klaster sa tri čvora automatski prelazi u HA režim."
-echo "DONE."
+echo "DONE: cluster formed. Check that microk8s status reports high-availability: yes."

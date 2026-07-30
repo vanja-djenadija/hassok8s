@@ -1,8 +1,3 @@
-# =============================================================
-#  Realm import — KeycloakRealmImport CR
-#  Definiše realm, role i test klijent kao kod (IaC).
-#  Izmjene kroz admin UI se ne sinhronizuju nazad u ovaj fajl.
-# =============================================================
 apiVersion: k8s.keycloak.org/v2beta1
 kind: KeycloakRealmImport
 metadata:
