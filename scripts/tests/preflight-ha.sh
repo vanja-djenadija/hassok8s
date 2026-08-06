@@ -28,6 +28,7 @@ KC="${KC:-microk8s kubectl}"
 EXPECTED_NODES="${EXPECTED_NODES:-3}"
 EXPECTED_KEYCLOAK_PODS="${KEYCLOAK_INSTANCES:-3}"
 EXPECTED_POSTGRES_PODS="${PG_INSTANCES:-3}"
+MIN_KEYCLOAK_STABLE_SECONDS="${MIN_KEYCLOAK_STABLE_SECONDS:-600}"
 
 KEYCLOAK_LABEL="${KEYCLOAK_LABEL:-app=keycloak,app.kubernetes.io/managed-by=keycloak-operator}"
 POSTGRES_LABEL="${POSTGRES_LABEL:-cnpg.io/cluster=keycloak-postgres}"
@@ -164,6 +165,32 @@ info "Keycloak pods: total=${KC_TOTAL_PODS}, ready=${KC_READY_PODS}, unique_node
 [[ "${KC_TOTAL_PODS}" == "${EXPECTED_KEYCLOAK_PODS}" ]] || fail "Expected ${EXPECTED_KEYCLOAK_PODS} Keycloak pods, found ${KC_TOTAL_PODS}."
 [[ "${KC_READY_PODS}" == "${EXPECTED_KEYCLOAK_PODS}" ]] || fail "Expected ${EXPECTED_KEYCLOAK_PODS} Ready Keycloak pods, found ${KC_READY_PODS}."
 [[ "${KC_UNIQUE_NODES}" == "${EXPECTED_KEYCLOAK_PODS}" ]] || fail "Keycloak pods are not spread across ${EXPECTED_KEYCLOAK_PODS} different nodes."
+
+section "4a. Keycloak restart stability"
+
+NOW_EPOCH="$(date +%s)"
+
+while read -r POD RESTARTS FINISHED_AT; do
+  [[ -n "${POD}" ]] || continue
+
+  echo "Pod=${POD}, restarts=${RESTARTS}, last_terminated=${FINISHED_AT:-none}" | tee -a "${REPORT}"
+
+  if [[ "${RESTARTS}" -gt 0 && -n "${FINISHED_AT}" ]]; then
+    FINISHED_EPOCH="$(date -d "${FINISHED_AT}" +%s)"
+    AGE_SECONDS="$((NOW_EPOCH - FINISHED_EPOCH))"
+
+    echo "Last restart age for ${POD}: ${AGE_SECONDS}s" | tee -a "${REPORT}"
+
+    if (( AGE_SECONDS < MIN_KEYCLOAK_STABLE_SECONDS )); then
+      fail "Keycloak pod ${POD} restarted ${AGE_SECONDS}s ago. Minimum stable period is ${MIN_KEYCLOAK_STABLE_SECONDS}s."
+    fi
+  fi
+done < <(
+  ${KC} get pods -n "${NAMESPACE}" -l "${KEYCLOAK_LABEL}" \
+    -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.containerStatuses[0].restartCount}{" "}{.status.containerStatuses[0].lastState.terminated.finishedAt}{"\n"}{end}'
+)
+
+info "No recent Keycloak restarts detected within the minimum stability window."
 
 section "5. Services and Ingress"
 

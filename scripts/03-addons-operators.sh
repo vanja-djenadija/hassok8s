@@ -45,9 +45,25 @@ BASE="https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/${KEYCLO
 ${KC} apply -f "${BASE}/keycloaks.k8s.keycloak.org-v1.yml"
 ${KC} apply -f "${BASE}/keycloakrealmimports.k8s.keycloak.org-v1.yml"
 
-echo "    Waiting for Keycloak CRDs..."
-${KC} wait --for=condition=Established crd/keycloaks.k8s.keycloak.org --timeout=180s
-${KC} wait --for=condition=Established crd/keycloakrealmimports.k8s.keycloak.org --timeout=180s
+echo "    Waiting for Keycloak CRDs to be registered..."
+
+for crd in keycloaks.k8s.keycloak.org keycloakrealmimports.k8s.keycloak.org; do
+  for i in $(seq 1 60); do
+    if ${KC} get crd "${crd}" >/dev/null 2>&1; then
+      echo "    CRD ${crd} is registered."
+      break
+    fi
+
+    if [[ "${i}" -eq 60 ]]; then
+      echo "ERROR: CRD ${crd} was not registered in time." >&2
+      exit 1
+    fi
+
+    sleep 2
+  done
+done
+
+sleep 5
 
 ${KC} create namespace "${NAMESPACE}" --dry-run=client -o yaml | ${KC} apply -f -
 ${KC} -n "${NAMESPACE}" apply -f "${BASE}/kubernetes.yml"
