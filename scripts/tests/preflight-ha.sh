@@ -25,10 +25,6 @@ source "${CONFIG_FILE}"
 
 KC="${KC:-microk8s kubectl}"
 
-NAMESPACE="${NAMESPACE:-keycloak}"
-REALM_NAME="${REALM_NAME:-unibl}"
-PROBER_IMAGE="${PROBER_IMAGE:-curlimages/curl:8.10.1}"
-
 EXPECTED_NODES="${EXPECTED_NODES:-3}"
 EXPECTED_KEYCLOAK_PODS="${KEYCLOAK_INSTANCES:-3}"
 EXPECTED_POSTGRES_PODS="${PG_INSTANCES:-3}"
@@ -36,6 +32,7 @@ EXPECTED_POSTGRES_PODS="${PG_INSTANCES:-3}"
 KEYCLOAK_LABEL="${KEYCLOAK_LABEL:-app=keycloak,app.kubernetes.io/managed-by=keycloak-operator}"
 POSTGRES_LABEL="${POSTGRES_LABEL:-cnpg.io/cluster=keycloak-postgres}"
 
+PROBER_IMAGE="${PROBER_IMAGE:-curlimages/curl:8.10.1}"
 REALM_DISCOVERY_URL_INTERNAL="https://keycloak-unibl-service.${NAMESPACE}.svc.cluster.local:8443/realms/${REALM_NAME}/.well-known/openid-configuration"
 
 OUT_DIR="${ROOT_DIR}/logs/preflight"
@@ -88,9 +85,6 @@ echo "Expected nodes: ${EXPECTED_NODES}" | tee -a "${REPORT}"
 echo "Expected Keycloak pods: ${EXPECTED_KEYCLOAK_PODS}" | tee -a "${REPORT}"
 echo "Expected PostgreSQL pods: ${EXPECTED_POSTGRES_PODS}" | tee -a "${REPORT}"
 
-# -------------------------------------------------------------
-# 1. Kubernetes API and nodes
-# -------------------------------------------------------------
 section "1. Kubernetes nodes"
 
 ${KC} get nodes -o wide | tee -a "${REPORT}"
@@ -103,9 +97,6 @@ info "Ready nodes: ${READY_NODES}/${TOTAL_NODES}"
 [[ "${TOTAL_NODES}" -ge "${EXPECTED_NODES}" ]] || fail "Expected at least ${EXPECTED_NODES} nodes, found ${TOTAL_NODES}."
 [[ "${READY_NODES}" -ge "${EXPECTED_NODES}" ]] || fail "Expected at least ${EXPECTED_NODES} Ready nodes, found ${READY_NODES}."
 
-# -------------------------------------------------------------
-# 2. Namespace and problematic pods
-# -------------------------------------------------------------
 section "2. Namespace resources"
 
 ${KC} get all -n "${NAMESPACE}" | tee -a "${REPORT}"
@@ -120,9 +111,6 @@ fi
 
 info "No Pending/CrashLoopBackOff/ImagePullBackOff/Error pods found."
 
-# -------------------------------------------------------------
-# 3. CloudNativePG cluster state
-# -------------------------------------------------------------
 section "3. PostgreSQL cluster state"
 
 ${KC} get cluster keycloak-postgres -n "${NAMESPACE}" | tee -a "${REPORT}"
@@ -157,9 +145,6 @@ PRIMARY_POD="$(${KC} get pods -n "${NAMESPACE}" -l "${POSTGRES_LABEL}" -L role -
 
 info "Current PostgreSQL primary: ${PRIMARY_POD}"
 
-# -------------------------------------------------------------
-# 4. Keycloak cluster state
-# -------------------------------------------------------------
 section "4. Keycloak cluster state"
 
 ${KC} get keycloak keycloak-unibl -n "${NAMESPACE}" | tee -a "${REPORT}" || fail "Keycloak CR not found."
@@ -180,9 +165,6 @@ info "Keycloak pods: total=${KC_TOTAL_PODS}, ready=${KC_READY_PODS}, unique_node
 [[ "${KC_READY_PODS}" == "${EXPECTED_KEYCLOAK_PODS}" ]] || fail "Expected ${EXPECTED_KEYCLOAK_PODS} Ready Keycloak pods, found ${KC_READY_PODS}."
 [[ "${KC_UNIQUE_NODES}" == "${EXPECTED_KEYCLOAK_PODS}" ]] || fail "Keycloak pods are not spread across ${EXPECTED_KEYCLOAK_PODS} different nodes."
 
-# -------------------------------------------------------------
-# 5. Services and Ingress
-# -------------------------------------------------------------
 section "5. Services and Ingress"
 
 ${KC} get svc -n "${NAMESPACE}" | tee -a "${REPORT}"
@@ -199,14 +181,11 @@ ${KC} get ingress keycloak-ingress -n "${NAMESPACE}" >/dev/null 2>&1 \
 
 info "Required services and ingress exist."
 
-# -------------------------------------------------------------
-# 6. Realm endpoint check through internal Keycloak service
-# -------------------------------------------------------------
 section "6. Realm endpoint check"
 
 PROBE_POD="preflight-curl-${TS}"
 
-cat <<EOF | ${KC} apply -f - >/dev/null
+cat <<EOF_POD | ${KC} apply -f - >/dev/null
 apiVersion: v1
 kind: Pod
 metadata:
@@ -222,32 +201,31 @@ spec:
       command: ["sh", "-c"]
       args:
         - |
-          curl -sk --connect-timeout 5 --max-time 15 \
+          curl -sk --connect-timeout 5 --max-time 20 \
             -o /dev/null \
             -w "%{http_code} %{time_total}\n" \
             "${REALM_DISCOVERY_URL_INTERNAL}"
-EOF
+EOF_POD
 
 cleanup_probe() {
   ${KC} delete pod "${PROBE_POD}" -n "${NAMESPACE}" --ignore-not-found=true >/dev/null 2>&1 || true
 }
 trap cleanup_probe EXIT
 
-# This is a short-lived curl pod. Waiting for Ready can be flaky
-# because the pod may finish before kubectl observes the Ready condition.
-# Therefore, wait for terminal phase instead.
 PHASE=""
 for i in $(seq 1 60); do
   PHASE="$(${KC} get pod "${PROBE_POD}" -n "${NAMESPACE}" -o jsonpath='{.status.phase}' 2>/dev/null || echo "")"
+
   if [[ "${PHASE}" == "Succeeded" || "${PHASE}" == "Failed" ]]; then
     break
   fi
+
   sleep 1
 done
 
 if [[ "${PHASE}" != "Succeeded" && "${PHASE}" != "Failed" ]]; then
   ${KC} describe pod "${PROBE_POD}" -n "${NAMESPACE}" | tee -a "${REPORT}" >&2 || true
-  fail "Preflight curl pod did not complete within the timeout. Last phase: '${PHASE}'."
+  fail "Preflight curl pod did not finish in time. Current phase: ${PHASE:-unknown}."
 fi
 
 PROBE_LOG="$(${KC} logs "${PROBE_POD}" -n "${NAMESPACE}" 2>/dev/null || true)"
@@ -258,16 +236,10 @@ HTTP_CODE="$(echo "${PROBE_LOG}" | awk '{print $1}' | tail -1)"
 
 info "Realm discovery endpoint returned HTTP 200."
 
-# -------------------------------------------------------------
-# 7. PVC and storage snapshot
-# -------------------------------------------------------------
 section "7. PVC and storage snapshot"
 
 ${KC} get pvc -n "${NAMESPACE}" | tee -a "${REPORT}"
 
-# -------------------------------------------------------------
-# Final result
-# -------------------------------------------------------------
 section "Preflight result"
 
 echo "Preflight PASSED." | tee -a "${REPORT}"

@@ -8,13 +8,7 @@ set -euo pipefail
 # available when one Keycloak pod is deleted.
 #
 # The test measures service availability through the OIDC discovery
-# endpoint of the configured realm:
-#
-#   /realms/<realm>/.well-known/openid-configuration
-#
-# This is more representative than checking only /health/ready,
-# because it verifies that the realm is actually reachable as an
-# identity provider.
+# endpoint of the configured realm.
 # =============================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -32,12 +26,8 @@ source "${CONFIG_FILE}"
 
 KC="${KC:-microk8s kubectl}"
 
-NAMESPACE="${NAMESPACE:-keycloak}"
-REALM_NAME="${REALM_NAME:-unibl}"
-KEYCLOAK_INSTANCES="${KEYCLOAK_INSTANCES:-3}"
-
-NS="${NAMESPACE}"
-REALM="${REALM_NAME}"
+NS="${NAMESPACE:-keycloak}"
+REALM="${REALM_NAME:-unibl}"
 SERVICE_NAME="${KEYCLOAK_SERVICE_NAME:-keycloak-unibl-service}"
 
 PROBER_IMAGE="${PROBER_IMAGE:-curlimages/curl:8.10.1}"
@@ -65,7 +55,7 @@ log() {
 event() {
   local name="$1"
   local details="${2:-}"
-  echo "$(date --iso-8601=seconds),${name},${details}" | tee -a "${EVENTS_CSV}" >/dev/null
+  echo "$(date -u +"%Y-%m-%dT%H:%M:%SZ"),${name},${details}" | tee -a "${EVENTS_CSV}" >/dev/null
 }
 
 fail() {
@@ -81,9 +71,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# -------------------------------------------------------------
-# 0. Initialize output files
-# -------------------------------------------------------------
 echo "timestamp,epoch_ms,http_code,time_total_s,result,phase,error" > "${REQUESTS_CSV}"
 echo "timestamp,event,details" > "${EVENTS_CSV}"
 
@@ -92,9 +79,6 @@ event "test_started" "run_id=${RUN_ID}"
 log "Output directory: ${OUT_DIR}"
 log "Internal probe URL: ${INTERNAL_URL}"
 
-# -------------------------------------------------------------
-# 1. Preflight check
-# -------------------------------------------------------------
 log "Running preflight check..."
 if [[ -x "${SCRIPT_DIR}/preflight-ha.sh" ]]; then
   "${SCRIPT_DIR}/preflight-ha.sh"
@@ -103,9 +87,6 @@ else
 fi
 event "preflight_passed" ""
 
-# -------------------------------------------------------------
-# 2. Capture initial state
-# -------------------------------------------------------------
 log "Capturing initial Keycloak pod placement..."
 ${KC} get pods -n "${NS}" -l "${KEYCLOAK_LABEL}" -o wide | tee "${OUT_DIR}/initial-keycloak-pods.txt"
 
@@ -116,7 +97,6 @@ INITIAL_READY="$(${KC} get pods -n "${NS}" -l "${KEYCLOAK_LABEL}" \
 EXPECTED_READY="${KEYCLOAK_INSTANCES:-3}"
 [[ "${INITIAL_READY}" == "${EXPECTED_READY}" ]] || fail "Expected ${EXPECTED_READY} Ready Keycloak pods, found ${INITIAL_READY}."
 
-# Select victim pod. By default, choose the first Ready Keycloak pod.
 VICTIM_POD="${VICTIM_POD:-$(${KC} get pods -n "${NS}" -l "${KEYCLOAK_LABEL}" \
   -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.phase}{" "}{range .status.conditions[?(@.type=="Ready")]}{.status}{end}{"\n"}{end}' \
   | awk '$2=="Running" && $3=="True" {print $1; exit}')}"
@@ -129,14 +109,11 @@ log "Victim pod: ${VICTIM_POD}"
 log "Victim node: ${VICTIM_NODE}"
 event "victim_selected" "pod=${VICTIM_POD};node=${VICTIM_NODE}"
 
-# -------------------------------------------------------------
-# 3. Start internal prober pod
-# -------------------------------------------------------------
 PROBER_POD="kc-failover-prober-${RUN_ID}"
 
 log "Starting prober pod: ${PROBER_POD}"
 
-cat <<EOF | ${KC} apply -f - >/dev/null
+cat <<EOF_POD | ${KC} apply -f - >/dev/null
 apiVersion: v1
 kind: Pod
 metadata:
@@ -154,8 +131,9 @@ spec:
         - |
           PHASE_FILE="/tmp/phase"
           echo "before" > "\${PHASE_FILE}"
+
           while true; do
-            TS=\$(date --iso-8601=seconds)
+            TS=\$(date -u +"%Y-%m-%dT%H:%M:%SZ")
             EPOCH_MS=\$((\$(date +%s) * 1000))
             PHASE=\$(cat "\${PHASE_FILE}" 2>/dev/null || echo "unknown")
 
@@ -188,14 +166,13 @@ spec:
 
             sleep ${PROBE_INTERVAL}
           done
-EOF
+EOF_POD
 
 ${KC} wait --for=condition=Ready pod/"${PROBER_POD}" -n "${NS}" --timeout=120s >/dev/null \
   || fail "Prober pod did not become Ready."
 
 event "prober_started" "pod=${PROBER_POD}"
 
-# Helper to fetch prober logs into requests.csv.
 collect_logs() {
   ${KC} logs "${PROBER_POD}" -n "${NS}" 2>/dev/null \
     | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}T' \
@@ -206,19 +183,14 @@ collect_logs() {
     cat "${OUT_DIR}/prober-current.log"
   } > "${REQUESTS_CSV}.tmp"
 
-  # Remove duplicates while preserving order.
   awk '!seen[$0]++' "${REQUESTS_CSV}.tmp" > "${REQUESTS_CSV}"
 }
 
-# Helper to change prober phase from outside.
 set_probe_phase() {
   local phase="$1"
   ${KC} exec "${PROBER_POD}" -n "${NS}" -- sh -c "echo '${phase}' > /tmp/phase" >/dev/null 2>&1 || true
 }
 
-# -------------------------------------------------------------
-# 4. Baseline period
-# -------------------------------------------------------------
 log "Baseline period: ${BASELINE_SECONDS}s"
 event "baseline_started" "seconds=${BASELINE_SECONDS}"
 
@@ -231,6 +203,7 @@ BASELINE_TOTAL="$(awk -F',' 'NR>1 && $6=="before" {count++} END {print count+0}'
 event "baseline_finished" "total=${BASELINE_TOTAL};fails=${BASELINE_FAILS}"
 
 if (( BASELINE_TOTAL == 0 )); then
+  ${KC} logs "${PROBER_POD}" -n "${NS}" --tail=50 || true
   fail "No baseline probe samples collected."
 fi
 
@@ -238,21 +211,14 @@ if (( BASELINE_FAILS > 0 )); then
   fail "Baseline contains failed requests. The run is not valid."
 fi
 
-# -------------------------------------------------------------
-# 5. Inject failure
-# -------------------------------------------------------------
 log "Injecting failure: deleting pod ${VICTIM_POD}"
 set_probe_phase "during"
 
-INJECTION_EPOCH_MS="$(date +%s%3N)"
-INJECTION_TS="$(date --iso-8601=seconds)"
+INJECTION_EPOCH_MS="$(($(date +%s) * 1000))"
 event "failure_injected" "deleted_pod=${VICTIM_POD};node=${VICTIM_NODE}"
 
 ${KC} delete pod "${VICTIM_POD}" -n "${NS}" --wait=false >/dev/null
 
-# -------------------------------------------------------------
-# 6. Wait until Keycloak returns to desired number of Ready pods
-# -------------------------------------------------------------
 log "Waiting for Keycloak recovery, timeout ${RECOVERY_TIMEOUT_SECONDS}s..."
 
 RECOVERY_START_EPOCH_MS="${INJECTION_EPOCH_MS}"
@@ -265,7 +231,7 @@ for _ in $(seq 1 "${RECOVERY_TIMEOUT_SECONDS}"); do
     | awk '$2=="Running" && $3=="True" {count++} END {print count+0}')"
 
   if [[ "${READY_COUNT}" == "${EXPECTED_READY}" ]]; then
-    RECOVERY_END_EPOCH_MS="$(date +%s%3N)"
+    RECOVERY_END_EPOCH_MS="$(($(date +%s) * 1000))"
     RECOVERY_OK="true"
     break
   fi
@@ -282,9 +248,6 @@ else
   event "pod_recovery_timeout" "timeout_seconds=${RECOVERY_TIMEOUT_SECONDS}"
 fi
 
-# -------------------------------------------------------------
-# 7. Post-recovery observation
-# -------------------------------------------------------------
 set_probe_phase "after"
 log "Post-recovery observation: ${POST_RECOVERY_SECONDS}s"
 event "post_recovery_observation_started" "seconds=${POST_RECOVERY_SECONDS}"
@@ -294,27 +257,18 @@ collect_logs
 
 event "post_recovery_observation_finished" ""
 
-# Stop prober to freeze logs.
 ${KC} delete pod "${PROBER_POD}" -n "${NS}" --ignore-not-found=true >/dev/null 2>&1 || true
 PROBER_POD=""
 
-# -------------------------------------------------------------
-# 8. Capture final state
-# -------------------------------------------------------------
 log "Capturing final Keycloak pod placement..."
 ${KC} get pods -n "${NS}" -l "${KEYCLOAK_LABEL}" -o wide | tee "${OUT_DIR}/final-keycloak-pods.txt"
 
-# -------------------------------------------------------------
-# 9. Calculate metrics
-# -------------------------------------------------------------
 TOTAL_REQUESTS="$(awk -F',' 'NR>1 {count++} END {print count+0}' "${REQUESTS_CSV}")"
 SUCCESSFUL_REQUESTS="$(awk -F',' 'NR>1 && $5=="OK" {count++} END {print count+0}' "${REQUESTS_CSV}")"
 FAILED_REQUESTS="$(awk -F',' 'NR>1 && $5=="FAIL" {count++} END {print count+0}' "${REQUESTS_CSV}")"
 
 AVAILABILITY_PERCENT="$(awk -v ok="${SUCCESSFUL_REQUESTS}" -v total="${TOTAL_REQUESTS}" 'BEGIN { if (total==0) print "0.000"; else printf "%.3f", (ok/total)*100 }')"
 
-# Service downtime is measured as the interval between the last OK
-# before the first failure after injection and the first OK after that.
 FIRST_FAIL_AFTER_INJECTION_MS="$(awk -F',' -v inj="${INJECTION_EPOCH_MS}" '
   NR>1 && $2>=inj && $5=="FAIL" {print $2; exit}
 ' "${REQUESTS_CSV}")"
@@ -363,9 +317,6 @@ if (( TOTAL_REQUESTS == 0 )); then
   INVALID_REASON="${INVALID_REASON}no_probe_samples;"
 fi
 
-# -------------------------------------------------------------
-# 10. Write summary
-# -------------------------------------------------------------
 {
   echo "metric,value"
   echo "run_id,${RUN_ID}"
@@ -394,9 +345,6 @@ fi
 
 event "test_finished" "run_valid=${RUN_VALID};availability=${AVAILABILITY_PERCENT};downtime=${SERVICE_DOWNTIME_S}"
 
-# -------------------------------------------------------------
-# 11. Print final report
-# -------------------------------------------------------------
 echo ""
 echo "============================================================"
 echo " KEYCLOAK FAILOVER TEST FINISHED"
