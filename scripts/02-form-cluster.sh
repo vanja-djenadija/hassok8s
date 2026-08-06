@@ -2,7 +2,15 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../config.env"
+CONFIG_FILE="${SCRIPT_DIR}/../config.env"
+
+if [[ ! -f "${CONFIG_FILE}" ]]; then
+  echo "ERROR: config.env not found at ${CONFIG_FILE}" >&2
+  exit 1
+fi
+
+# shellcheck source=/dev/null
+source "${CONFIG_FILE}"
 
 KC="microk8s kubectl"
 

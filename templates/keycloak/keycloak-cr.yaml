@@ -15,7 +15,7 @@ spec:
 
   db:
     vendor: postgres
-    host: keycloak-postgres-rw      # CNPG primary servis (read-write)
+    host: keycloak-postgres-rw      # CNPG primary service (read-write)
     database: ${PG_DATABASE}
     usernameSecret:
       name: keycloak-db-secret
@@ -30,7 +30,7 @@ spec:
   http:
     tlsSecret: keycloak-tls
 
-  # TLS terminira Ingress; Keycloak je iza proxyja.
+  # TLS terminates at Ingress; Keycloak runs behind the proxy.
   proxy:
     headers: xforwarded
 
@@ -50,8 +50,6 @@ spec:
         labelSelector:
           matchLabels:
             app: keycloak
-            app.kubernetes.io/managed-by: keycloak-operator
-            app.kubernetes.io/component: server
 
   resources:
     requests:

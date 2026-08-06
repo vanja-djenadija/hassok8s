@@ -13,9 +13,21 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-source "${ROOT_DIR}/config.env"
+CONFIG_FILE="${ROOT_DIR}/config.env"
+
+if [[ ! -f "${CONFIG_FILE}" ]]; then
+  echo "ERROR: config.env not found at ${CONFIG_FILE}" >&2
+  exit 1
+fi
+
+# shellcheck source=/dev/null
+source "${CONFIG_FILE}"
 
 KC="${KC:-microk8s kubectl}"
+
+NAMESPACE="${NAMESPACE:-keycloak}"
+REALM_NAME="${REALM_NAME:-unibl}"
+PROBER_IMAGE="${PROBER_IMAGE:-curlimages/curl:8.10.1}"
 
 EXPECTED_NODES="${EXPECTED_NODES:-3}"
 EXPECTED_KEYCLOAK_PODS="${KEYCLOAK_INSTANCES:-3}"
@@ -206,7 +218,7 @@ spec:
   restartPolicy: Never
   containers:
     - name: curl
-      image: ${PROBER_IMAGE:-curlimages/curl:8.10.1}
+      image: ${PROBER_IMAGE}
       command: ["sh", "-c"]
       args:
         - |
@@ -221,21 +233,22 @@ cleanup_probe() {
 }
 trap cleanup_probe EXIT
 
-${KC} wait --for=condition=Ready pod/"${PROBE_POD}" -n "${NAMESPACE}" --timeout=60s >/dev/null 2>&1 || {
-  ${KC} describe pod "${PROBE_POD}" -n "${NAMESPACE}" | tee -a "${REPORT}" >&2 || true
-  fail "Preflight curl pod did not become Ready."
-}
-
-${KC} wait --for=condition=Ready pod/"${PROBE_POD}" -n "${NAMESPACE}" --timeout=5s >/dev/null 2>&1 || true
-
-# Wait until the pod completes.
-for i in $(seq 1 30); do
+# This is a short-lived curl pod. Waiting for Ready can be flaky
+# because the pod may finish before kubectl observes the Ready condition.
+# Therefore, wait for terminal phase instead.
+PHASE=""
+for i in $(seq 1 60); do
   PHASE="$(${KC} get pod "${PROBE_POD}" -n "${NAMESPACE}" -o jsonpath='{.status.phase}' 2>/dev/null || echo "")"
   if [[ "${PHASE}" == "Succeeded" || "${PHASE}" == "Failed" ]]; then
     break
   fi
   sleep 1
 done
+
+if [[ "${PHASE}" != "Succeeded" && "${PHASE}" != "Failed" ]]; then
+  ${KC} describe pod "${PROBE_POD}" -n "${NAMESPACE}" | tee -a "${REPORT}" >&2 || true
+  fail "Preflight curl pod did not complete within the timeout. Last phase: '${PHASE}'."
+fi
 
 PROBE_LOG="$(${KC} logs "${PROBE_POD}" -n "${NAMESPACE}" 2>/dev/null || true)"
 echo "Realm discovery check result: ${PROBE_LOG}" | tee -a "${REPORT}"

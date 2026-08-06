@@ -2,7 +2,15 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/../config.env"
+CONFIG_FILE="${SCRIPT_DIR}/../config.env"
+
+if [[ ! -f "${CONFIG_FILE}" ]]; then
+  echo "ERROR: config.env not found at ${CONFIG_FILE}" >&2
+  exit 1
+fi
+
+# shellcheck source=/dev/null
+source "${CONFIG_FILE}"
 
 if [[ "${EUID}" -ne 0 ]]; then
   echo "ERROR: run this script as root or via sudo." >&2

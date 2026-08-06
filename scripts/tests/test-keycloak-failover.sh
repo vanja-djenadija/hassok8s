@@ -20,9 +20,21 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-source "${ROOT_DIR}/config.env"
+CONFIG_FILE="${ROOT_DIR}/config.env"
+
+if [[ ! -f "${CONFIG_FILE}" ]]; then
+  echo "ERROR: config.env not found at ${CONFIG_FILE}" >&2
+  exit 1
+fi
+
+# shellcheck source=/dev/null
+source "${CONFIG_FILE}"
 
 KC="${KC:-microk8s kubectl}"
+
+NAMESPACE="${NAMESPACE:-keycloak}"
+REALM_NAME="${REALM_NAME:-unibl}"
+KEYCLOAK_INSTANCES="${KEYCLOAK_INSTANCES:-3}"
 
 NS="${NAMESPACE}"
 REALM="${REALM_NAME}"
@@ -144,7 +156,7 @@ spec:
           echo "before" > "\${PHASE_FILE}"
           while true; do
             TS=\$(date --iso-8601=seconds)
-            EPOCH_MS=\$(date +%s%3N)
+            EPOCH_MS=\$((\$(date +%s) * 1000))
             PHASE=\$(cat "\${PHASE_FILE}" 2>/dev/null || echo "unknown")
 
             OUT=\$(curl -sk \

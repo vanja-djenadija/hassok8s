@@ -30,16 +30,28 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-source "${ROOT_DIR}/config.env"
+CONFIG_FILE="${ROOT_DIR}/config.env"
+
+if [[ ! -f "${CONFIG_FILE}" ]]; then
+  echo "ERROR: config.env not found at ${CONFIG_FILE}" >&2
+  exit 1
+fi
+
+# shellcheck source=/dev/null
+source "${CONFIG_FILE}"
 
 KC="${KC:-microk8s kubectl}"
 
-NS="${NAMESPACE}"
+NAMESPACE="${NAMESPACE:-keycloak}"
+PG_INSTANCES="${PG_INSTANCES:-3}"
 PG_CLUSTER="${PG_CLUSTER:-keycloak-postgres}"
 PG_RW_SERVICE="${PG_RW_SERVICE:-keycloak-postgres-rw}"
-PG_DATABASE="${PG_DATABASE}"
-PG_USERNAME="${PG_USERNAME}"
 DB_SECRET="${DB_SECRET:-keycloak-db-secret}"
+
+NS="${NAMESPACE}"
+
+: "${PG_DATABASE:?Missing PG_DATABASE in config.env}"
+: "${PG_USERNAME:?Missing PG_USERNAME in config.env}"
 
 POSTGRES_LABEL="${POSTGRES_LABEL:-cnpg.io/cluster=${PG_CLUSTER}}"
 WRITER_IMAGE="${WRITER_IMAGE:-postgres:16.4}"
@@ -142,21 +154,21 @@ DB_PASS="$(${KC} get secret "${DB_SECRET}" -n "${NS}" -o jsonpath='{.data.passwo
 
 ADMIN_POD="${PRIMARY_POD}"
 
-${KC} exec "${ADMIN_POD}" -n "${NS}" -- bash -c "
-  PGPASSWORD='${DB_PASS}' psql \
-    -h '${PG_RW_SERVICE}' \
-    -U '${PG_USERNAME}' \
-    -d '${PG_DATABASE}' \
+${KC} exec "${ADMIN_POD}" -n "${NS}" -- \
+  env PGPASSWORD="${DB_PASS}" \
+  psql \
+    -h "${PG_RW_SERVICE}" \
+    -U "${PG_USERNAME}" \
+    -d "${PG_DATABASE}" \
     -v ON_ERROR_STOP=1 \
-    -c \"CREATE TABLE IF NOT EXISTS ${TEST_TABLE} (
+    -c "CREATE TABLE IF NOT EXISTS ${TEST_TABLE} (
           run_id text NOT NULL,
           seq integer NOT NULL,
           created_at timestamptz NOT NULL DEFAULT now(),
           writer_pod text NOT NULL,
           phase text NOT NULL,
           PRIMARY KEY (run_id, seq)
-        );\"
-" >/dev/null
+        );" >/dev/null
 
 event "test_table_prepared" "table=${TEST_TABLE}"
 
@@ -387,14 +399,15 @@ fi
 
 [[ -n "${VERIFY_POD}" ]] || fail "Could not find PostgreSQL pod for verification."
 
-COMMITTED_ROWS="$(${KC} exec "${VERIFY_POD}" -n "${NS}" -- bash -c "
-  PGPASSWORD='${DB_PASS}' psql \
-    -h '${PG_RW_SERVICE}' \
-    -U '${PG_USERNAME}' \
-    -d '${PG_DATABASE}' \
+COMMITTED_ROWS="$(${KC} exec "${VERIFY_POD}" -n "${NS}" -- \
+  env PGPASSWORD="${DB_PASS}" \
+  psql \
+    -h "${PG_RW_SERVICE}" \
+    -U "${PG_USERNAME}" \
+    -d "${PG_DATABASE}" \
     -qAt \
-    -c \"SELECT count(*) FROM ${TEST_TABLE} WHERE run_id='${RUN_ID}';\"
-" | tr -d '[:space:]')"
+    -c "SELECT count(*) FROM ${TEST_TABLE} WHERE run_id='${RUN_ID}';" \
+  | tr -d '[:space:]')"
 
 SUCCESSFUL_WRITES="$(awk -F',' 'NR>1 && $5=="OK" {count++} END {print count+0}' "${WRITES_CSV}")"
 FAILED_WRITES="$(awk -F',' 'NR>1 && $5=="FAIL" {count++} END {print count+0}' "${WRITES_CSV}")"
