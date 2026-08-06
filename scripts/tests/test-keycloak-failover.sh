@@ -211,11 +211,13 @@ if (( BASELINE_FAILS > 0 )); then
   fail "Baseline contains failed requests. The run is not valid."
 fi
 
+VICTIM_UID_BEFORE="$(${KC} get pod "${VICTIM_POD}" -n "${NS}" -o jsonpath='{.metadata.uid}')"
+
 log "Injecting failure: deleting pod ${VICTIM_POD}"
 set_probe_phase "during"
 
 INJECTION_EPOCH_MS="$(($(date +%s) * 1000))"
-event "failure_injected" "deleted_pod=${VICTIM_POD};node=${VICTIM_NODE}"
+event "failure_injected" "deleted_pod=${VICTIM_POD};node=${VICTIM_NODE};old_uid=${VICTIM_UID_BEFORE}"
 
 ${KC} delete pod "${VICTIM_POD}" -n "${NS}" --wait=false >/dev/null
 
@@ -226,11 +228,30 @@ RECOVERY_END_EPOCH_MS=""
 RECOVERY_OK="false"
 
 for _ in $(seq 1 "${RECOVERY_TIMEOUT_SECONDS}"); do
+  CURRENT_UID="$(${KC} get pod "${VICTIM_POD}" -n "${NS}" -o jsonpath='{.metadata.uid}' 2>/dev/null || echo "")"
+
+  VICTIM_READY="$(${KC} get pod "${VICTIM_POD}" -n "${NS}" \
+    -o jsonpath='{range .status.conditions[?(@.type=="Ready")]}{.status}{end}' 2>/dev/null || echo "False")"
+
+  VICTIM_PHASE="$(${KC} get pod "${VICTIM_POD}" -n "${NS}" \
+    -o jsonpath='{.status.phase}' 2>/dev/null || echo "")"
+
   READY_COUNT="$(${KC} get pods -n "${NS}" -l "${KEYCLOAK_LABEL}" \
     -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.phase}{" "}{range .status.conditions[?(@.type=="Ready")]}{.status}{end}{"\n"}{end}' \
     | awk '$2=="Running" && $3=="True" {count++} END {print count+0}')"
 
-  if [[ "${READY_COUNT}" == "${EXPECTED_READY}" ]]; then
+  TOTAL_COUNT="$(${KC} get pods -n "${NS}" -l "${KEYCLOAK_LABEL}" --no-headers 2>/dev/null | wc -l | tr -d ' ')"
+
+  KC_READY_CONDITION="$(${KC} get keycloak keycloak-unibl -n "${NS}" \
+    -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo "")"
+
+  if [[ -n "${CURRENT_UID}" \
+        && "${CURRENT_UID}" != "${VICTIM_UID_BEFORE}" \
+        && "${VICTIM_PHASE}" == "Running" \
+        && "${VICTIM_READY}" == "True" \
+        && "${READY_COUNT}" == "${EXPECTED_READY}" \
+        && "${TOTAL_COUNT}" == "${EXPECTED_READY}" \
+        && "${KC_READY_CONDITION}" == "True" ]]; then
     RECOVERY_END_EPOCH_MS="$(($(date +%s) * 1000))"
     RECOVERY_OK="true"
     break
