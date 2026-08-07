@@ -88,11 +88,28 @@ KC="${KC}" ./scripts/tests/preflight-ha.sh | tee -a "${SUMMARY_TXT}"
 log "Capturing Keycloak pod placement before test..."
 ${KC} get pods -n "${NS}" -l "${KEYCLOAK_LABEL}" -o wide | tee "${OUT_DIR}/pods-before.txt" | tee -a "${SUMMARY_TXT}"
 
-VICTIM_POD="$(
-  ${KC} get pods -n "${NS}" -l "${KEYCLOAK_LABEL}" \
-    -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.containerStatuses[0].restartCount}{"\n"}{end}' \
-  | sort -k2,2n | head -1 | awk '{print $1}'
-)"
+if [[ -n "${VICTIM_POD:-}" ]]; then
+  log "Using manually selected victim pod: ${VICTIM_POD}"
+
+  if ! ${KC} get pod "${VICTIM_POD}" -n "${NS}" >/dev/null 2>&1; then
+    log "ERROR: Manually selected victim pod does not exist: ${VICTIM_POD}"
+    exit 1
+  fi
+
+  VICTIM_READY="$(${KC} get pod "${VICTIM_POD}" -n "${NS}" -o jsonpath='{.status.containerStatuses[0].ready}' 2>/dev/null || true)"
+  if [[ "${VICTIM_READY}" != "true" ]]; then
+    log "ERROR: Manually selected victim pod is not Ready: ${VICTIM_POD}"
+    exit 1
+  fi
+else
+  VICTIM_POD="$(
+    ${KC} get pods -n "${NS}" -l "${KEYCLOAK_LABEL}" \
+      -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.containerStatuses[0].restartCount}{"\n"}{end}' \
+    | sort -k2,2n | head -1 | awk '{print $1}'
+  )"
+
+  log "Automatically selected victim pod: ${VICTIM_POD}"
+fi
 
 VICTIM_NODE="$(${KC} get pod "${VICTIM_POD}" -n "${NS}" -o jsonpath='{.spec.nodeName}')"
 VICTIM_UID_BEFORE="$(${KC} get pod "${VICTIM_POD}" -n "${NS}" -o jsonpath='{.metadata.uid}')"
