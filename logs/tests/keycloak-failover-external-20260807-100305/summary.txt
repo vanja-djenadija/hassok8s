@@ -1,0 +1,165 @@
+[10:03:05] Output directory: /home/vanja/hassok8s/logs/tests/keycloak-failover-external-20260807-100305
+[10:03:05] Probe URL: https://auth.etfbl.net/realms/unibl/.well-known/openid-configuration
+[10:03:05] Using kubectl command: kubectl
+[10:03:05] Running preflight...
+
+------------------------------------------------------------
+HA SSO preflight check
+------------------------------------------------------------
+Timestamp: 20260807-100305
+Namespace: keycloak
+Expected nodes: 3
+Expected Keycloak pods: 3
+Expected PostgreSQL pods: 3
+
+------------------------------------------------------------
+1. Kubernetes nodes
+------------------------------------------------------------
+NAME   STATUS   ROLES    AGE   VERSION    INTERNAL-IP     EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+n00    Ready    <none>   25h   v1.29.15   78.28.135.130   <none>        Ubuntu 24.04.3 LTS   6.8.0-136-generic   containerd://1.6.28
+n01    Ready    <none>   25h   v1.29.15   78.28.135.131   <none>        Ubuntu 24.04.3 LTS   6.8.0-134-generic   containerd://1.6.28
+n02    Ready    <none>   25h   v1.29.15   78.28.135.132   <none>        Ubuntu 24.04.3 LTS   6.8.0-136-generic   containerd://1.6.28
+==> Ready nodes: 3/3
+
+------------------------------------------------------------
+2. Namespace resources
+------------------------------------------------------------
+NAME                                     READY   STATUS      RESTARTS      AGE
+pod/keycloak-operator-5859445dbd-blhc4   1/1     Running     2 (24h ago)   24h
+pod/keycloak-postgres-1                  1/1     Running     0             24h
+pod/keycloak-postgres-2                  1/1     Running     0             24h
+pod/keycloak-postgres-3                  1/1     Running     0             24h
+pod/keycloak-unibl-0                     1/1     Running     0             71m
+pod/keycloak-unibl-1                     1/1     Running     0             43m
+pod/keycloak-unibl-2                     1/1     Running     0             19m
+pod/realm-import-dhd59                   0/1     Completed   0             24h
+
+NAME                               TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)             AGE
+service/keycloak-operator          ClusterIP   10.152.183.192   <none>        80/TCP              24h
+service/keycloak-postgres-r        ClusterIP   10.152.183.82    <none>        5432/TCP            24h
+service/keycloak-postgres-ro       ClusterIP   10.152.183.164   <none>        5432/TCP            24h
+service/keycloak-postgres-rw       ClusterIP   10.152.183.52    <none>        5432/TCP            24h
+service/keycloak-unibl-discovery   ClusterIP   None             <none>        7800/TCP            24h
+service/keycloak-unibl-service     ClusterIP   10.152.183.63    <none>        8443/TCP,9000/TCP   24h
+
+NAME                                READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/keycloak-operator   1/1     1            1           24h
+
+NAME                                           DESIRED   CURRENT   READY   AGE
+replicaset.apps/keycloak-operator-5859445dbd   1         1         1       24h
+
+NAME                              READY   AGE
+statefulset.apps/keycloak-unibl   3/3     24h
+
+NAME                     COMPLETIONS   DURATION   AGE
+job.batch/realm-import   1/1           85s        24h
+==> No Pending/CrashLoopBackOff/ImagePullBackOff/Error pods found.
+
+------------------------------------------------------------
+3. PostgreSQL cluster state
+------------------------------------------------------------
+NAME                AGE   INSTANCES   READY   STATUS                     PRIMARY
+keycloak-postgres   24h   3           3       Cluster in healthy state   keycloak-postgres-1
+NAME                  READY   STATUS    RESTARTS   AGE   IP            NODE   NOMINATED NODE   READINESS GATES   ROLE
+keycloak-postgres-1   1/1     Running   0          24h   10.1.77.5     n01    <none>           <none>            primary
+keycloak-postgres-2   1/1     Running   0          24h   10.1.79.70    n00    <none>           <none>            replica
+keycloak-postgres-3   1/1     Running   0          24h   10.1.32.200   n02    <none>           <none>            replica
+==> CNPG phase: Cluster in healthy state
+==> CNPG ready instances: 3/3
+==> PostgreSQL pods: total=3, ready=3, unique_nodes=3
+==> Current PostgreSQL primary: keycloak-postgres-1
+
+------------------------------------------------------------
+4. Keycloak cluster state
+------------------------------------------------------------
+NAME             AGE
+keycloak-unibl   24h
+NAME               READY   STATUS    RESTARTS   AGE   IP            NODE   NOMINATED NODE   READINESS GATES
+keycloak-unibl-0   1/1     Running   0          71m   10.1.77.40    n01    <none>           <none>
+keycloak-unibl-1   1/1     Running   0          43m   10.1.79.78    n00    <none>           <none>
+keycloak-unibl-2   1/1     Running   0          19m   10.1.32.206   n02    <none>           <none>
+==> Keycloak Ready condition: True
+==> Keycloak pods: total=3, ready=3, unique_nodes=3
+
+------------------------------------------------------------
+4a. Keycloak restart stability
+------------------------------------------------------------
+Pod=keycloak-unibl-0, restarts=0, last_terminated=none
+Pod=keycloak-unibl-1, restarts=0, last_terminated=none
+Pod=keycloak-unibl-2, restarts=0, last_terminated=none
+==> No recent Keycloak restarts detected within the minimum stability window.
+
+------------------------------------------------------------
+5. Services and Ingress
+------------------------------------------------------------
+NAME                       TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)             AGE
+keycloak-operator          ClusterIP   10.152.183.192   <none>        80/TCP              24h
+keycloak-postgres-r        ClusterIP   10.152.183.82    <none>        5432/TCP            24h
+keycloak-postgres-ro       ClusterIP   10.152.183.164   <none>        5432/TCP            24h
+keycloak-postgres-rw       ClusterIP   10.152.183.52    <none>        5432/TCP            24h
+keycloak-unibl-discovery   ClusterIP   None             <none>        7800/TCP            24h
+keycloak-unibl-service     ClusterIP   10.152.183.63    <none>        8443/TCP,9000/TCP   24h
+NAME               CLASS    HOSTS            ADDRESS     PORTS     AGE
+keycloak-ingress   public   auth.etfbl.net   127.0.0.1   80, 443   24h
+==> Required services and ingress exist.
+
+------------------------------------------------------------
+6. Realm endpoint check
+------------------------------------------------------------
+Realm discovery check result: 200 0.049033
+==> Realm discovery endpoint returned HTTP 200.
+
+------------------------------------------------------------
+7. PVC and storage snapshot
+------------------------------------------------------------
+NAME                  STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS        VOLUMEATTRIBUTESCLASS   AGE
+keycloak-postgres-1   Bound    pvc-53a3bd2a-fc8b-4568-87a0-6d5d891e98c2   20Gi       RWO            microk8s-hostpath   <unset>                 24h
+keycloak-postgres-2   Bound    pvc-527f6a96-b330-490d-b3b7-f3fde7194012   20Gi       RWO            microk8s-hostpath   <unset>                 24h
+keycloak-postgres-3   Bound    pvc-32bd898c-5a47-4116-b9ac-56b89f5d39ab   20Gi       RWO            microk8s-hostpath   <unset>                 24h
+
+------------------------------------------------------------
+Preflight result
+------------------------------------------------------------
+Preflight PASSED.
+Report saved to: /home/vanja/hassok8s/logs/preflight/preflight-20260807-100305.txt
+
+OK: The cluster is ready for failover testing.
+[10:03:23] Capturing Keycloak pod placement before test...
+NAME               READY   STATUS    RESTARTS   AGE   IP            NODE   NOMINATED NODE   READINESS GATES
+keycloak-unibl-0   1/1     Running   0          71m   10.1.77.40    n01    <none>           <none>
+keycloak-unibl-1   1/1     Running   0          44m   10.1.79.78    n00    <none>           <none>
+keycloak-unibl-2   1/1     Running   0          19m   10.1.32.206   n02    <none>           <none>
+[10:03:24] Using manually selected victim pod: keycloak-unibl-2
+[10:03:25] Victim pod: keycloak-unibl-2
+[10:03:25] Victim node: n02
+[10:03:25] Victim UID before: 6f73e643-5166-4e2a-b170-28e2bb18da15
+[10:03:25] Starting external probe loop...
+[10:03:25] Baseline period: 20s
+[10:03:45] Baseline OK. Injecting failure: deleting pod keycloak-unibl-2
+[10:03:46] Waiting for Keycloak recovery, timeout 600s...
+[10:04:43] Recovered. pod_recovery_s=58.000
+[10:04:43] Continuing external probe after recovery for 90s...
+NAME               READY   STATUS    RESTARTS   AGE     IP            NODE   NOMINATED NODE   READINESS GATES
+keycloak-unibl-0   1/1     Running   0          74m     10.1.77.40    n01    <none>           <none>
+keycloak-unibl-1   1/1     Running   0          46m     10.1.79.78    n00    <none>           <none>
+keycloak-unibl-2   1/1     Running   0          2m25s   10.1.32.207   n02    <none>           <none>
+
+================ SUMMARY ================
+test_type=keycloak_failover_external
+probe_url=https://auth.etfbl.net/realms/unibl/.well-known/openid-configuration
+victim_pod=keycloak-unibl-2
+victim_node=n02
+injection_ts=2026-08-07T10:03:45Z
+total_requests=124
+successful_requests=124
+failed_requests=0
+failed_requests_after_injection=0
+availability_percent=100.000
+service_downtime_s=0.000
+pod_recovery_s=58.000
+run_valid=true
+invalid_reason=none
+requests_csv=/home/vanja/hassok8s/logs/tests/keycloak-failover-external-20260807-100305/requests.csv
+summary_txt=/home/vanja/hassok8s/logs/tests/keycloak-failover-external-20260807-100305/summary.txt
+=========================================
+[10:06:14] Done.
