@@ -15,16 +15,19 @@ set -euo pipefail
 #
 # This service is the same stable database endpoint used by Keycloak.
 #
-# The main metric is client-visible write downtime:
-#
-#   time between the last successful write before failover impact
-#   and the first successful write after failover recovery.
+# The test is executed from an external machine through kubectl, but
+# the writer itself runs inside the Kubernetes cluster. This is
+# intentional and academically valid because PostgreSQL is not a
+# public user-facing component. It is consumed by the application
+# layer, i.e. Keycloak, through an internal Kubernetes service.
 #
 # A run is valid only if:
 #   - preflight check passes,
 #   - baseline writes succeed before failure injection,
+#   - a new primary is detected,
 #   - the cluster recovers to a healthy state,
-#   - successful_writes == committed_rows.
+#   - committed_rows == successful_writes,
+#   - no failed writes appear after the post-recovery phase begins.
 # =============================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -69,9 +72,11 @@ WRITES_CSV="${OUT_DIR}/writes.csv"
 EVENTS_CSV="${OUT_DIR}/events.csv"
 SUMMARY_CSV="${OUT_DIR}/summary.csv"
 
-TEST_TABLE="ha_failover_probe"
+TEST_TABLE="${TEST_TABLE:-ha_failover_probe}"
 JDBC_HOST="${PG_RW_SERVICE}.${NS}.svc.cluster.local"
 PGPORT="5432"
+
+WRITER_POD=""
 
 log() {
   echo "[$(date '+%H:%M:%S')] $*"
@@ -80,7 +85,7 @@ log() {
 event() {
   local name="$1"
   local details="${2:-}"
-  echo "$(date --iso-8601=seconds),${name},${details}" | tee -a "${EVENTS_CSV}" >/dev/null
+  echo "$(date --iso-8601=seconds),${name},${details}" >> "${EVENTS_CSV}"
 }
 
 fail() {
@@ -96,6 +101,108 @@ cleanup() {
 }
 trap cleanup EXIT
 
+append_invalid() {
+  local reason="$1"
+
+  if [[ "${INVALID_REASON}" == "none" ]]; then
+    INVALID_REASON="${reason}"
+  else
+    INVALID_REASON="${INVALID_REASON};${reason}"
+  fi
+
+  RUN_VALID="false"
+}
+
+percentile_from_sorted_values() {
+  local p="$1"
+
+  awk -v p="${p}" '
+    { a[NR]=$1 }
+    END {
+      if (NR == 0) {
+        print "n/a"
+      } else {
+        idx = int(p * NR)
+        if (idx < 1) idx = 1
+        if (idx > NR) idx = NR
+        print a[idx]
+      }
+    }'
+}
+
+latency_stat() {
+  local phase="$1"
+  local percentile="$2"
+
+  awk -F',' -v phase="${phase}" '
+    NR>1 && $6==phase && $5=="OK" {print $4}
+  ' "${WRITES_CSV}" | sort -n | percentile_from_sorted_values "${percentile}"
+}
+
+latency_max() {
+  local phase="$1"
+
+  awk -F',' -v phase="${phase}" '
+    NR>1 && $6==phase && $5=="OK" {
+      if ($4 > max) max = $4
+    }
+    END {
+      if (max == "") print "n/a";
+      else print max
+    }
+  ' "${WRITES_CSV}"
+}
+
+collect_logs() {
+  if [[ -z "${WRITER_POD:-}" ]]; then
+    return 0
+  fi
+
+  ${KC} logs "${WRITER_POD}" -n "${NS}" 2>/dev/null \
+    | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}T' \
+    > "${OUT_DIR}/writer-current.log" || true
+
+  {
+    head -1 "${WRITES_CSV}"
+    cat "${OUT_DIR}/writer-current.log" 2>/dev/null || true
+  } > "${WRITES_CSV}.tmp"
+
+  awk '!seen[$0]++' "${WRITES_CSV}.tmp" > "${WRITES_CSV}"
+}
+
+set_writer_phase() {
+  local phase="$1"
+
+  if [[ -n "${WRITER_POD:-}" ]]; then
+    ${KC} exec "${WRITER_POD}" -n "${NS}" -- \
+      bash -c "echo '${phase}' > /tmp/phase" >/dev/null 2>&1 || true
+  fi
+}
+
+stop_writer_gracefully() {
+  if [[ -z "${WRITER_POD:-}" ]]; then
+    return 0
+  fi
+
+  log "Stopping writer gracefully..."
+  event "writer_stop_requested" "pod=${WRITER_POD}"
+
+  ${KC} exec "${WRITER_POD}" -n "${NS}" -- \
+    bash -c "touch /tmp/stop" >/dev/null 2>&1 || true
+
+  for _ in $(seq 1 30); do
+    PHASE="$(${KC} get pod "${WRITER_POD}" -n "${NS}" -o jsonpath='{.status.phase}' 2>/dev/null || echo "Missing")"
+
+    if [[ "${PHASE}" == "Succeeded" || "${PHASE}" == "Failed" || "${PHASE}" == "Missing" ]]; then
+      break
+    fi
+
+    sleep 1
+  done
+
+  collect_logs
+}
+
 # -------------------------------------------------------------
 # 0. Initialize output files
 # -------------------------------------------------------------
@@ -108,22 +215,26 @@ log "Output directory: ${OUT_DIR}"
 log "PostgreSQL RW service: ${PG_RW_SERVICE}"
 log "Database: ${PG_DATABASE}"
 log "Writer interval: ${WRITE_INTERVAL}s"
+log "Using kubectl command: ${KC}"
 
 # -------------------------------------------------------------
 # 1. Preflight check
 # -------------------------------------------------------------
 log "Running preflight check..."
+
 if [[ -x "${SCRIPT_DIR}/preflight-ha.sh" ]]; then
-  "${SCRIPT_DIR}/preflight-ha.sh"
+  KC="${KC}" "${SCRIPT_DIR}/preflight-ha.sh"
 else
   fail "preflight-ha.sh not found or not executable."
 fi
+
 event "preflight_passed" ""
 
 # -------------------------------------------------------------
 # 2. Capture initial PostgreSQL state
 # -------------------------------------------------------------
 log "Capturing initial PostgreSQL state..."
+
 ${KC} get cluster "${PG_CLUSTER}" -n "${NS}" | tee "${OUT_DIR}/initial-pg-cluster.txt"
 ${KC} get pods -n "${NS}" -l "${POSTGRES_LABEL}" -L role -o wide | tee "${OUT_DIR}/initial-pg-pods.txt"
 ${KC} get svc -n "${NS}" | grep "${PG_CLUSTER}" | tee "${OUT_DIR}/initial-pg-services.txt" || true
@@ -152,12 +263,11 @@ log "Preparing test table..."
 
 DB_PASS="$(${KC} get secret "${DB_SECRET}" -n "${NS}" -o jsonpath='{.data.password}' | base64 -d)"
 
-ADMIN_POD="${PRIMARY_POD}"
-
-${KC} exec "${ADMIN_POD}" -n "${NS}" -- \
+${KC} exec -c postgres "${PRIMARY_POD}" -n "${NS}" -- \
   env PGPASSWORD="${DB_PASS}" \
   psql \
     -h "${PG_RW_SERVICE}" \
+    -p "${PGPORT}" \
     -U "${PG_USERNAME}" \
     -d "${PG_DATABASE}" \
     -v ON_ERROR_STOP=1 \
@@ -189,6 +299,15 @@ metadata:
     app: postgres-failover-writer
 spec:
   restartPolicy: Never
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: NotIn
+                values:
+                  - ${PRIMARY_NODE}
   containers:
     - name: writer
       image: ${WRITER_IMAGE}
@@ -204,11 +323,17 @@ spec:
           set +e
 
           PHASE_FILE="/tmp/phase"
+          STOP_FILE="/tmp/stop"
+
           echo "before" > "\${PHASE_FILE}"
 
           SEQ=0
 
           while true; do
+            if [ -f "\${STOP_FILE}" ]; then
+              break
+            fi
+
             SEQ=\$((SEQ + 1))
             TS=\$(date --iso-8601=seconds)
             EPOCH_MS=\$(date +%s%3N)
@@ -237,38 +362,23 @@ spec:
 
             sleep ${WRITE_INTERVAL}
           done
+
+          exit 0
 EOF
 
 ${KC} wait --for=condition=Ready pod/"${WRITER_POD}" -n "${NS}" --timeout=120s >/dev/null \
   || fail "Writer pod did not become Ready."
 
 WRITER_NODE="$(${KC} get pod "${WRITER_POD}" -n "${NS}" -o jsonpath='{.spec.nodeName}')"
+
 log "Writer pod node: ${WRITER_NODE}"
 event "writer_started" "pod=${WRITER_POD};node=${WRITER_NODE}"
 
 if [[ "${WRITER_NODE}" == "${PRIMARY_NODE}" ]]; then
   event "writer_on_primary_node" "writer_node=${WRITER_NODE};primary_node=${PRIMARY_NODE}"
   log "WARNING: Writer pod is on the same node as the current primary."
-  log "This does not automatically invalidate the run, but it should be considered during analysis."
+  log "This should normally not happen because nodeAffinity excludes the primary node."
 fi
-
-collect_logs() {
-  ${KC} logs "${WRITER_POD}" -n "${NS}" 2>/dev/null \
-    | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}T' \
-    > "${OUT_DIR}/writer-current.log" || true
-
-  {
-    head -1 "${WRITES_CSV}"
-    cat "${OUT_DIR}/writer-current.log"
-  } > "${WRITES_CSV}.tmp"
-
-  awk '!seen[$0]++' "${WRITES_CSV}.tmp" > "${WRITES_CSV}"
-}
-
-set_writer_phase() {
-  local phase="$1"
-  ${KC} exec "${WRITER_POD}" -n "${NS}" -- bash -c "echo '${phase}' > /tmp/phase" >/dev/null 2>&1 || true
-}
 
 # -------------------------------------------------------------
 # 5. Baseline period
@@ -292,13 +402,9 @@ if (( BASELINE_FAILS > 0 )); then
   fail "Baseline contains failed writes. The run is not valid."
 fi
 
-BASELINE_P50_MS="$(awk -F',' 'NR>1 && $6=="before" && $5=="OK" {print $4}' "${WRITES_CSV}" \
-  | sort -n | awk '{a[NR]=$1} END {if (NR==0) print "n/a"; else {idx=int(0.50*NR); if(idx<1) idx=1; print a[idx]}}')"
-
-BASELINE_P95_MS="$(awk -F',' 'NR>1 && $6=="before" && $5=="OK" {print $4}' "${WRITES_CSV}" \
-  | sort -n | awk '{a[NR]=$1} END {if (NR==0) print "n/a"; else {idx=int(0.95*NR); if(idx<1) idx=1; print a[idx]}}')"
-
-BASELINE_MAX_MS="$(awk -F',' 'NR>1 && $6=="before" && $5=="OK" {if($4>max) max=$4} END {if(max=="") print "n/a"; else print max}' "${WRITES_CSV}")"
+BASELINE_P50_MS="$(latency_stat "before" "0.50")"
+BASELINE_P95_MS="$(latency_stat "before" "0.95")"
+BASELINE_MAX_MS="$(latency_max "before")"
 
 log "Baseline latency: p50=${BASELINE_P50_MS}ms, p95=${BASELINE_P95_MS}ms, max=${BASELINE_MAX_MS}ms"
 event "baseline_latency" "p50_ms=${BASELINE_P50_MS};p95_ms=${BASELINE_P95_MS};max_ms=${BASELINE_MAX_MS}"
@@ -307,6 +413,7 @@ event "baseline_latency" "p50_ms=${BASELINE_P50_MS};p95_ms=${BASELINE_P95_MS};ma
 # 6. Inject primary failure
 # -------------------------------------------------------------
 log "Injecting failure: deleting current primary pod ${PRIMARY_POD}"
+
 set_writer_phase "during"
 
 INJECTION_EPOCH_MS="$(date +%s%3N)"
@@ -369,11 +476,12 @@ log "Post-recovery observation: ${POST_RECOVERY_SECONDS}s"
 event "post_recovery_observation_started" "seconds=${POST_RECOVERY_SECONDS}"
 
 sleep "${POST_RECOVERY_SECONDS}"
-collect_logs
+
+stop_writer_gracefully
 
 event "post_recovery_observation_finished" ""
 
-# Stop writer to freeze logs.
+# Writer logs are now frozen and collected.
 ${KC} delete pod "${WRITER_POD}" -n "${NS}" --ignore-not-found=true >/dev/null 2>&1 || true
 WRITER_POD=""
 
@@ -381,6 +489,7 @@ WRITER_POD=""
 # 9. Capture final PostgreSQL state
 # -------------------------------------------------------------
 log "Capturing final PostgreSQL state..."
+
 ${KC} get cluster "${PG_CLUSTER}" -n "${NS}" | tee "${OUT_DIR}/final-pg-cluster.txt"
 ${KC} get pods -n "${NS}" -l "${POSTGRES_LABEL}" -L role -o wide | tee "${OUT_DIR}/final-pg-pods.txt"
 
@@ -389,7 +498,6 @@ ${KC} get pods -n "${NS}" -l "${POSTGRES_LABEL}" -L role -o wide | tee "${OUT_DI
 # -------------------------------------------------------------
 log "Verifying committed rows..."
 
-# Use the current primary if available; otherwise any existing postgres pod.
 VERIFY_POD="$(${KC} get pods -n "${NS}" -l "${POSTGRES_LABEL}" -L role --no-headers 2>/dev/null \
   | awk '$NF=="primary" {print $1; exit}')"
 
@@ -399,33 +507,59 @@ fi
 
 [[ -n "${VERIFY_POD}" ]] || fail "Could not find PostgreSQL pod for verification."
 
-COMMITTED_ROWS="$(${KC} exec "${VERIFY_POD}" -n "${NS}" -- \
+COMMITTED_ROWS="$(${KC} exec -c postgres "${VERIFY_POD}" -n "${NS}" -- \
   env PGPASSWORD="${DB_PASS}" \
   psql \
     -h "${PG_RW_SERVICE}" \
+    -p "${PGPORT}" \
     -U "${PG_USERNAME}" \
     -d "${PG_DATABASE}" \
     -qAt \
     -c "SELECT count(*) FROM ${TEST_TABLE} WHERE run_id='${RUN_ID}';" \
   | tr -d '[:space:]')"
 
+DISTINCT_COMMITTED_SEQ="$(${KC} exec -c postgres "${VERIFY_POD}" -n "${NS}" -- \
+  env PGPASSWORD="${DB_PASS}" \
+  psql \
+    -h "${PG_RW_SERVICE}" \
+    -p "${PGPORT}" \
+    -U "${PG_USERNAME}" \
+    -d "${PG_DATABASE}" \
+    -qAt \
+    -c "SELECT count(DISTINCT seq) FROM ${TEST_TABLE} WHERE run_id='${RUN_ID}';" \
+  | tr -d '[:space:]')"
+
 SUCCESSFUL_WRITES="$(awk -F',' 'NR>1 && $5=="OK" {count++} END {print count+0}' "${WRITES_CSV}")"
 FAILED_WRITES="$(awk -F',' 'NR>1 && $5=="FAIL" {count++} END {print count+0}' "${WRITES_CSV}")"
 TOTAL_ATTEMPTS="$(awk -F',' 'NR>1 {count++} END {print count+0}' "${WRITES_CSV}")"
 
-if [[ "${COMMITTED_ROWS}" == "${SUCCESSFUL_WRITES}" ]]; then
-  DATA_LOSS_CHECK="pass"
-else
+FAILED_WRITES_AFTER_INJECTION="$(awk -F',' -v inj="${INJECTION_EPOCH_MS}" '
+  NR>1 && $2>=inj && $5=="FAIL" {count++}
+  END {print count+0}
+' "${WRITES_CSV}")"
+
+AFTER_FAILS="$(awk -F',' 'NR>1 && $6=="after" && $5=="FAIL" {count++} END {print count+0}' "${WRITES_CSV}")"
+
+if (( COMMITTED_ROWS < SUCCESSFUL_WRITES )); then
   DATA_LOSS_CHECK="fail"
+  MEASUREMENT_CHECK="committed_rows_less_than_logged_successes"
+elif (( COMMITTED_ROWS == SUCCESSFUL_WRITES )); then
+  DATA_LOSS_CHECK="pass"
+  MEASUREMENT_CHECK="exact_match"
+else
+  DATA_LOSS_CHECK="pass"
+  MEASUREMENT_CHECK="committed_rows_greater_than_logged_successes"
 fi
 
-event "committed_rows_verified" "successful_writes=${SUCCESSFUL_WRITES};committed_rows=${COMMITTED_ROWS};result=${DATA_LOSS_CHECK}"
+if [[ "${COMMITTED_ROWS}" != "${DISTINCT_COMMITTED_SEQ}" ]]; then
+  MEASUREMENT_CHECK="${MEASUREMENT_CHECK};duplicate_seq_detected"
+fi
+
+event "committed_rows_verified" "successful_writes=${SUCCESSFUL_WRITES};committed_rows=${COMMITTED_ROWS};distinct_seq=${DISTINCT_COMMITTED_SEQ};data_loss=${DATA_LOSS_CHECK};measurement=${MEASUREMENT_CHECK}"
 
 # -------------------------------------------------------------
 # 11. Calculate downtime metrics
 # -------------------------------------------------------------
-
-# First failed write after failure injection.
 FIRST_FAIL_AFTER_INJECTION_MS="$(awk -F',' -v inj="${INJECTION_EPOCH_MS}" '
   NR>1 && $2>=inj && $5=="FAIL" {print $2; exit}
 ' "${WRITES_CSV}")"
@@ -449,50 +583,54 @@ else
   CLIENT_WRITE_DOWNTIME_S="0.000"
 fi
 
-FAILED_WRITES_AFTER_INJECTION="$(awk -F',' -v inj="${INJECTION_EPOCH_MS}" '
-  NR>1 && $2>=inj && $5=="FAIL" {count++}
-  END {print count+0}
-' "${WRITES_CSV}")"
+if [[ -n "${FAILOVER_DETECTED_EPOCH_MS}" ]]; then
+  FAILOVER_DETECTED_S="$(awk -v a="${INJECTION_EPOCH_MS}" -v b="${FAILOVER_DETECTED_EPOCH_MS}" 'BEGIN {printf "%.3f", (b-a)/1000}')"
+else
+  FAILOVER_DETECTED_S="n/a"
+fi
 
-AFTER_FAILS="$(awk -F',' 'NR>1 && $6=="after" && $5=="FAIL" {count++} END {print count+0}' "${WRITES_CSV}")"
-
-POST_RECOVERY_P95_MS="$(awk -F',' 'NR>1 && $6=="after" && $5=="OK" {print $4}' "${WRITES_CSV}" \
-  | sort -n | awk '{a[NR]=$1} END {if (NR==0) print "n/a"; else {idx=int(0.95*NR); if(idx<1) idx=1; print a[idx]}}')"
+POST_RECOVERY_P50_MS="$(latency_stat "after" "0.50")"
+POST_RECOVERY_P95_MS="$(latency_stat "after" "0.95")"
+POST_RECOVERY_MAX_MS="$(latency_max "after")"
 
 # -------------------------------------------------------------
 # 12. Determine run validity
 # -------------------------------------------------------------
 RUN_VALID="true"
-INVALID_REASON=""
+INVALID_REASON="none"
 
 if (( BASELINE_FAILS > 0 )); then
-  RUN_VALID="false"
-  INVALID_REASON="${INVALID_REASON}baseline_failures;"
+  append_invalid "baseline_failures"
 fi
 
 if [[ "${RECOVERY_OK}" != "true" ]]; then
-  RUN_VALID="false"
-  INVALID_REASON="${INVALID_REASON}cluster_recovery_timeout;"
+  append_invalid "cluster_recovery_timeout"
+fi
+
+if [[ -z "${NEW_PRIMARY_POD}" ]]; then
+  append_invalid "new_primary_not_detected"
+elif [[ "${NEW_PRIMARY_POD}" == "${PRIMARY_POD}" ]]; then
+  append_invalid "primary_did_not_change"
 fi
 
 if [[ "${DATA_LOSS_CHECK}" != "pass" ]]; then
-  RUN_VALID="false"
-  INVALID_REASON="${INVALID_REASON}successful_writes_do_not_match_committed_rows;"
+  append_invalid "possible_data_loss"
+fi
+
+if [[ "${MEASUREMENT_CHECK}" != "exact_match" ]]; then
+  append_invalid "measurement_check_${MEASUREMENT_CHECK}"
 fi
 
 if (( AFTER_FAILS > 0 )); then
-  RUN_VALID="false"
-  INVALID_REASON="${INVALID_REASON}post_recovery_failures;"
+  append_invalid "post_recovery_failures"
 fi
 
 if [[ "${CLIENT_WRITE_DOWNTIME_S}" == "n/a" ]]; then
-  RUN_VALID="false"
-  INVALID_REASON="${INVALID_REASON}downtime_not_measurable;"
+  append_invalid "downtime_not_measurable"
 fi
 
 if (( TOTAL_ATTEMPTS == 0 )); then
-  RUN_VALID="false"
-  INVALID_REASON="${INVALID_REASON}no_write_samples;"
+  append_invalid "no_write_samples"
 fi
 
 # -------------------------------------------------------------
@@ -526,16 +664,21 @@ fi
   echo "failed_writes,${FAILED_WRITES}"
   echo "failed_writes_after_injection,${FAILED_WRITES_AFTER_INJECTION}"
   echo "committed_rows,${COMMITTED_ROWS}"
+  echo "distinct_committed_seq,${DISTINCT_COMMITTED_SEQ}"
   echo "data_loss_check,${DATA_LOSS_CHECK}"
+  echo "measurement_check,${MEASUREMENT_CHECK}"
   echo "client_write_downtime_s,${CLIENT_WRITE_DOWNTIME_S}"
+  echo "failover_detected_s,${FAILOVER_DETECTED_S}"
   echo "cluster_full_recovery_s,${CLUSTER_FULL_RECOVERY_S}"
   echo "post_recovery_failed_writes,${AFTER_FAILS}"
+  echo "post_recovery_write_p50_ms,${POST_RECOVERY_P50_MS}"
   echo "post_recovery_write_p95_ms,${POST_RECOVERY_P95_MS}"
+  echo "post_recovery_write_max_ms,${POST_RECOVERY_MAX_MS}"
   echo "run_valid,${RUN_VALID}"
-  echo "invalid_reason,${INVALID_REASON:-none}"
+  echo "invalid_reason,${INVALID_REASON}"
 } > "${SUMMARY_CSV}"
 
-event "test_finished" "run_valid=${RUN_VALID};downtime=${CLIENT_WRITE_DOWNTIME_S};data_loss=${DATA_LOSS_CHECK}"
+event "test_finished" "run_valid=${RUN_VALID};downtime=${CLIENT_WRITE_DOWNTIME_S};data_loss=${DATA_LOSS_CHECK};measurement=${MEASUREMENT_CHECK}"
 
 # -------------------------------------------------------------
 # 14. Print final report
@@ -556,13 +699,16 @@ echo "Successful writes:            ${SUCCESSFUL_WRITES}"
 echo "Failed writes:                ${FAILED_WRITES}"
 echo "Failed writes after failure:  ${FAILED_WRITES_AFTER_INJECTION}"
 echo "Committed rows:               ${COMMITTED_ROWS}"
+echo "Distinct committed seq:       ${DISTINCT_COMMITTED_SEQ}"
 echo "Data loss check:              ${DATA_LOSS_CHECK}"
+echo "Measurement check:            ${MEASUREMENT_CHECK}"
 echo "Client write downtime:        ${CLIENT_WRITE_DOWNTIME_S}s"
+echo "Failover detected:            ${FAILOVER_DETECTED_S}s"
 echo "Cluster full recovery:        ${CLUSTER_FULL_RECOVERY_S}s"
 echo "Baseline p95 latency:         ${BASELINE_P95_MS}ms"
 echo "Post-recovery p95 latency:    ${POST_RECOVERY_P95_MS}ms"
 echo "Run valid:                    ${RUN_VALID}"
-echo "Invalid reason:               ${INVALID_REASON:-none}"
+echo "Invalid reason:               ${INVALID_REASON}"
 echo "============================================================"
 echo ""
 echo "Generated files:"
