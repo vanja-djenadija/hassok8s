@@ -1,0 +1,4 @@
+NAME               READY   STATUS    RESTARTS   AGE     IP            NODE   NOMINATED NODE   READINESS GATES
+keycloak-unibl-0   1/1     Running   0          30m     10.1.77.40    n01    <none>           <none>
+keycloak-unibl-1   1/1     Running   0          2m35s   10.1.79.78    n00    <none>           <none>
+keycloak-unibl-2   1/1     Running   0          48m     10.1.32.205   n02    <none>           <none>
