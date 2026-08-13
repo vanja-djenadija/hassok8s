@@ -1,0 +1,4 @@
+NAME                  READY   STATUS    RESTARTS   AGE   IP            NODE   NOMINATED NODE   READINESS GATES   ROLE
+keycloak-postgres-1   1/1     Running   0          75m   10.1.77.57    n01    <none>           <none>            replica
+keycloak-postgres-2   1/1     Running   0          75s   10.1.79.88    n00    <none>           <none>            replica
+keycloak-postgres-3   1/1     Running   0          64m   10.1.32.224   n02    <none>           <none>            primary
