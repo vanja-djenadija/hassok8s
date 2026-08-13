@@ -1,0 +1,444 @@
+timestamp,epoch_ms,seq,duration_ms,result,phase,error
+2026-08-09T16:54:29+00:00,1786294469775,1,130,OK,before,
+2026-08-09T16:54:30+00:00,1786294470418,2,116,OK,before,
+2026-08-09T16:54:31+00:00,1786294471046,3,124,OK,before,
+2026-08-09T16:54:31+00:00,1786294471683,4,121,OK,before,
+2026-08-09T16:54:32+00:00,1786294472316,5,113,OK,before,
+2026-08-09T16:54:32+00:00,1786294472941,6,115,OK,before,
+2026-08-09T16:54:33+00:00,1786294473568,7,133,OK,before,
+2026-08-09T16:54:34+00:00,1786294474213,8,123,OK,before,
+2026-08-09T16:54:34+00:00,1786294474848,9,117,OK,before,
+2026-08-09T16:54:35+00:00,1786294475478,10,117,OK,before,
+2026-08-09T16:54:36+00:00,1786294476107,11,114,OK,before,
+2026-08-09T16:54:36+00:00,1786294476733,12,119,OK,before,
+2026-08-09T16:54:37+00:00,1786294477365,13,115,OK,before,
+2026-08-09T16:54:37+00:00,1786294477994,14,116,OK,before,
+2026-08-09T16:54:38+00:00,1786294478622,15,114,OK,before,
+2026-08-09T16:54:39+00:00,1786294479248,16,115,OK,before,
+2026-08-09T16:54:39+00:00,1786294479876,17,116,OK,before,
+2026-08-09T16:54:40+00:00,1786294480504,18,119,OK,before,
+2026-08-09T16:54:41+00:00,1786294481135,19,116,OK,before,
+2026-08-09T16:54:41+00:00,1786294481764,20,118,OK,before,
+2026-08-09T16:54:42+00:00,1786294482395,21,115,OK,before,
+2026-08-09T16:54:43+00:00,1786294483022,22,113,OK,before,
+2026-08-09T16:54:43+00:00,1786294483648,23,2123,OK,before,
+2026-08-09T16:54:46+00:00,1786294486282,24,839,OK,before,
+2026-08-09T16:54:47+00:00,1786294487633,25,124,OK,before,
+2026-08-09T16:54:48+00:00,1786294488269,26,120,OK,before,
+2026-08-09T16:54:48+00:00,1786294488903,27,115,OK,before,
+2026-08-09T16:54:49+00:00,1786294489530,28,114,OK,before,
+2026-08-09T16:54:50+00:00,1786294490154,29,117,OK,before,
+2026-08-09T16:54:50+00:00,1786294490784,30,114,OK,before,
+2026-08-09T16:54:51+00:00,1786294491410,31,115,OK,before,
+2026-08-09T16:54:52+00:00,1786294492037,32,115,OK,before,
+2026-08-09T16:54:52+00:00,1786294492664,33,125,OK,during,
+2026-08-09T16:54:53+00:00,1786294493301,34,123,OK,during,
+2026-08-09T16:54:53+00:00,1786294493937,35,114,OK,during,
+2026-08-09T16:54:54+00:00,1786294494562,36,119,OK,during,
+2026-08-09T16:54:55+00:00,1786294495193,37,117,OK,during,
+2026-08-09T16:54:55+00:00,1786294495824,38,114,OK,during,
+2026-08-09T16:54:56+00:00,1786294496450,39,125,OK,during,
+2026-08-09T16:54:57+00:00,1786294497087,40,124,OK,during,
+2026-08-09T16:54:57+00:00,1786294497723,41,111,OK,during,
+2026-08-09T16:54:58+00:00,1786294498345,42,107,OK,during,
+2026-08-09T16:54:58+00:00,1786294498963,43,112,OK,during,
+2026-08-09T16:54:59+00:00,1786294499587,44,113,OK,during,
+2026-08-09T16:55:00+00:00,1786294500212,45,2108,OK,during,
+2026-08-09T16:55:02+00:00,1786294502833,46,114,OK,during,
+2026-08-09T16:55:03+00:00,1786294503461,47,119,OK,during,
+2026-08-09T16:55:04+00:00,1786294504091,48,117,OK,during,
+2026-08-09T16:55:04+00:00,1786294504720,49,122,OK,during,
+2026-08-09T16:55:05+00:00,1786294505354,50,120,OK,during,
+2026-08-09T16:55:05+00:00,1786294505988,51,116,OK,during,
+2026-08-09T16:55:06+00:00,1786294506617,52,120,OK,during,
+2026-08-09T16:55:07+00:00,1786294507248,53,114,OK,during,
+2026-08-09T16:55:07+00:00,1786294507874,54,122,OK,during,
+2026-08-09T16:55:08+00:00,1786294508508,55,113,OK,during,
+2026-08-09T16:55:09+00:00,1786294509133,56,117,OK,during,
+2026-08-09T16:55:09+00:00,1786294509763,57,125,OK,during,
+2026-08-09T16:55:10+00:00,1786294510400,58,114,OK,during,
+2026-08-09T16:55:11+00:00,1786294511025,59,125,OK,during,
+2026-08-09T16:55:11+00:00,1786294511662,60,130,OK,during,
+2026-08-09T16:55:12+00:00,1786294512305,61,116,OK,during,
+2026-08-09T16:55:12+00:00,1786294512932,62,124,OK,during,
+2026-08-09T16:55:13+00:00,1786294513569,63,116,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: FATAL:  the database system is shutting down 
+2026-08-09T16:55:14+00:00,1786294514201,64,105,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: FATAL:  the database system is shutting down 
+2026-08-09T16:55:14+00:00,1786294514824,65,80,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:15+00:00,1786294515420,66,81,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:16+00:00,1786294516017,67,81,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:16+00:00,1786294516613,68,79,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:17+00:00,1786294517208,69,86,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:17+00:00,1786294517812,70,83,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:18+00:00,1786294518411,71,78,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:19+00:00,1786294519005,72,76,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:19+00:00,1786294519598,73,90,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:20+00:00,1786294520207,74,91,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:20+00:00,1786294520815,75,78,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:21+00:00,1786294521409,76,79,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:22+00:00,1786294522005,77,83,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:22+00:00,1786294522604,78,1095,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:24+00:00,1786294524217,79,89,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:24+00:00,1786294524825,80,1114,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:26+00:00,1786294526455,81,74,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:27+00:00,1786294527045,82,83,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:27+00:00,1786294527644,83,1111,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:29+00:00,1786294529271,84,75,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:29+00:00,1786294529862,85,77,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:30+00:00,1786294530456,86,1114,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:32+00:00,1786294532086,87,85,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:32+00:00,1786294532689,88,1122,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:34+00:00,1786294534327,89,83,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:34+00:00,1786294534928,90,76,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:35+00:00,1786294535519,91,1107,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:37+00:00,1786294537142,92,76,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:37+00:00,1786294537734,93,1133,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:39+00:00,1786294539383,94,81,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:39+00:00,1786294539979,95,83,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:40+00:00,1786294540579,96,1105,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:42+00:00,1786294542200,97,85,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:42+00:00,1786294542802,98,1120,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:44+00:00,1786294544439,99,91,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:45+00:00,1786294545047,100,82,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:45+00:00,1786294545646,101,1093,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:47+00:00,1786294547254,102,76,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:47+00:00,1786294547846,103,78,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:48+00:00,1786294548441,104,1113,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:50+00:00,1786294550070,105,88,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:50+00:00,1786294550673,106,1121,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:52+00:00,1786294552311,107,84,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:52+00:00,1786294552912,108,94,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:53+00:00,1786294553523,109,1087,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:55+00:00,1786294555126,110,81,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:55+00:00,1786294555726,111,1124,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:57+00:00,1786294557367,112,74,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:57+00:00,1786294557958,113,74,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:55:58+00:00,1786294558548,114,1118,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:00+00:00,1786294560184,115,83,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:00+00:00,1786294560784,116,1121,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:02+00:00,1786294562424,117,84,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:03+00:00,1786294563028,118,85,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:03+00:00,1786294563631,119,1092,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:05+00:00,1786294565241,120,101,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:05+00:00,1786294565858,121,77,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:06+00:00,1786294566450,122,1089,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:08+00:00,1786294568055,123,78,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:08+00:00,1786294568651,124,1128,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:10+00:00,1786294570295,125,77,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:10+00:00,1786294570887,126,81,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:11+00:00,1786294571486,127,1108,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:13+00:00,1786294573112,128,108,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:13+00:00,1786294573738,129,1097,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:15+00:00,1786294575353,130,78,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:15+00:00,1786294575946,131,77,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:16+00:00,1786294576542,132,1105,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:18+00:00,1786294578166,133,74,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:18+00:00,1786294578756,134,1133,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:20+00:00,1786294580406,135,86,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:21+00:00,1786294581009,136,78,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:21+00:00,1786294581602,137,1104,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:23+00:00,1786294583222,138,88,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:23+00:00,1786294583829,139,93,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:24+00:00,1786294584439,140,1147,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:26+00:00,1786294586102,141,86,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:26+00:00,1786294586705,142,1122,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:28+00:00,1786294588343,143,77,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:28+00:00,1786294588936,144,81,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:29+00:00,1786294589534,145,1107,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:31+00:00,1786294591158,146,75,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:31+00:00,1786294591751,147,1133,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:33+00:00,1786294593398,148,87,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:34+00:00,1786294594003,149,83,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:34+00:00,1786294594605,150,1156,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:36+00:00,1786294596278,151,85,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:36+00:00,1786294596881,152,78,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:37+00:00,1786294597475,153,1104,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:39+00:00,1786294599096,154,87,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:39+00:00,1786294599701,155,1117,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:41+00:00,1786294601335,156,83,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:41+00:00,1786294601938,157,80,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:42+00:00,1786294602534,158,1100,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:44+00:00,1786294604152,159,81,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:44+00:00,1786294604750,160,1124,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:46+00:00,1786294606391,161,97,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:47+00:00,1786294607006,162,84,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:47+00:00,1786294607608,163,1145,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:49+00:00,1786294609271,164,88,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:49+00:00,1786294609877,165,92,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:50+00:00,1786294610485,166,1085,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:52+00:00,1786294612087,167,86,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:52+00:00,1786294612691,168,1118,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:54+00:00,1786294614327,169,77,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:54+00:00,1786294614921,170,86,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:55+00:00,1786294615525,171,1102,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:57+00:00,1786294617143,172,80,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:57+00:00,1786294617738,173,1127,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:59+00:00,1786294619384,174,85,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:56:59+00:00,1786294619987,175,86,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:00+00:00,1786294620590,176,1155,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:02+00:00,1786294622263,177,86,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:02+00:00,1786294622866,178,103,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:03+00:00,1786294623488,179,1139,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:05+00:00,1786294625146,180,89,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:05+00:00,1786294625754,181,1112,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:07+00:00,1786294627384,182,85,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:07+00:00,1786294627986,183,83,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:08+00:00,1786294628585,184,1097,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:10+00:00,1786294630199,185,74,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:10+00:00,1786294630789,186,1134,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:12+00:00,1786294632440,187,84,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:13+00:00,1786294633042,188,95,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:13+00:00,1786294633656,189,1145,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:15+00:00,1786294635318,190,83,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:15+00:00,1786294635919,191,82,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:16+00:00,1786294636518,192,1099,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:18+00:00,1786294638134,193,86,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:18+00:00,1786294638735,194,1124,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:20+00:00,1786294640375,195,84,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:20+00:00,1786294640976,196,89,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:21+00:00,1786294641586,197,1151,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:23+00:00,1786294643257,198,82,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:23+00:00,1786294643856,199,96,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:24+00:00,1786294644470,200,1084,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:26+00:00,1786294646072,201,92,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:26+00:00,1786294646680,202,1114,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:28+00:00,1786294648310,203,78,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:28+00:00,1786294648905,204,76,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:29+00:00,1786294649497,205,1114,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:31+00:00,1786294651127,206,74,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:31+00:00,1786294651718,207,1133,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:33+00:00,1786294653367,208,80,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:33+00:00,1786294653963,209,78,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:34+00:00,1786294654559,210,1108,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:36+00:00,1786294656183,211,79,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:36+00:00,1786294656777,212,1129,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:38+00:00,1786294658422,213,77,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:39+00:00,1786294659015,214,75,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:39+00:00,1786294659607,215,1115,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:41+00:00,1786294661239,216,84,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:41+00:00,1786294661839,217,74,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:42+00:00,1786294662429,218,1110,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:44+00:00,1786294664055,219,73,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:44+00:00,1786294664644,220,1134,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:46+00:00,1786294666295,221,79,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:46+00:00,1786294666891,222,78,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:47+00:00,1786294667485,223,1111,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:49+00:00,1786294669110,224,74,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:49+00:00,1786294669700,225,1133,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:51+00:00,1786294671350,226,76,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:51+00:00,1786294671941,227,76,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:52+00:00,1786294672533,228,1117,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:54+00:00,1786294674165,229,78,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:54+00:00,1786294674760,230,1130,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:56+00:00,1786294676407,231,81,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:57+00:00,1786294677004,232,81,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:57+00:00,1786294677603,233,1104,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:59+00:00,1786294679222,234,72,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:57:59+00:00,1786294679811,235,1137,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:01+00:00,1786294681464,236,80,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:02+00:00,1786294682062,237,84,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:02+00:00,1786294682663,238,1099,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:04+00:00,1786294684278,239,75,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:04+00:00,1786294684869,240,79,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:05+00:00,1786294685464,241,1113,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:07+00:00,1786294687094,242,87,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:07+00:00,1786294687698,243,1119,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:09+00:00,1786294689334,244,78,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:09+00:00,1786294689931,245,80,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:10+00:00,1786294690528,246,1104,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:12+00:00,1786294692150,247,91,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:12+00:00,1786294692758,248,1117,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:14+00:00,1786294694390,249,86,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:14+00:00,1786294694996,250,99,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:15+00:00,1786294695615,251,1139,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:17+00:00,1786294697272,252,86,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:17+00:00,1786294697875,253,82,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:18+00:00,1786294698473,254,1097,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:20+00:00,1786294700087,255,79,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:20+00:00,1786294700681,256,1129,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:22+00:00,1786294702327,257,75,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:22+00:00,1786294702918,258,82,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:23+00:00,1786294703516,259,1111,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:25+00:00,1786294705142,260,112,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:25+00:00,1786294705771,261,1095,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:27+00:00,1786294707384,262,83,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:27+00:00,1786294707983,263,82,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:28+00:00,1786294708581,264,1102,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:30+00:00,1786294710199,265,83,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:30+00:00,1786294710798,266,1124,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:32+00:00,1786294712440,267,86,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:33+00:00,1786294713046,268,79,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:33+00:00,1786294713641,269,1097,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:35+00:00,1786294715256,270,99,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:35+00:00,1786294715873,271,82,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:36+00:00,1786294716473,272,1145,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:38+00:00,1786294718137,273,105,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:38+00:00,1786294718760,274,1098,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:40+00:00,1786294720374,275,75,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:40+00:00,1786294720964,276,74,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:41+00:00,1786294721555,277,1119,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:43+00:00,1786294723190,278,78,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:43+00:00,1786294723783,279,1131,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:45+00:00,1786294725431,280,121,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:46+00:00,1786294726076,281,78,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:46+00:00,1786294726671,282,1125,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:48+00:00,1786294728312,283,81,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:48+00:00,1786294728932,284,73,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:49+00:00,1786294729521,285,1090,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:51+00:00,1786294731127,286,76,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:51+00:00,1786294731719,287,1131,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:53+00:00,1786294733367,288,86,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:53+00:00,1786294733970,289,76,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:54+00:00,1786294734563,290,1104,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:56+00:00,1786294736183,291,77,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:56+00:00,1786294736777,292,1131,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:58+00:00,1786294738424,293,75,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:59+00:00,1786294739016,294,80,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:58:59+00:00,1786294739612,295,1111,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:59:01+00:00,1786294741238,296,75,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:59:01+00:00,1786294741829,297,80,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:59:02+00:00,1786294742425,298,1114,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:59:04+00:00,1786294744054,299,76,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:59:04+00:00,1786294744646,300,1133,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:59:06+00:00,1786294746295,301,78,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:59:06+00:00,1786294746891,302,82,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:59:07+00:00,1786294747489,303,1105,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:59:09+00:00,1786294749112,304,90,FAIL,during,psql_error_2:psql: error: connection to server at "keycloak-postgres-rw.keycloak.svc.cluster.local" (10.152.183.52); port 5432 failed: Connection refused 	Is the server running on that host and accepting TCP/IP connections? 
+2026-08-09T16:59:09+00:00,1786294749721,305,3102,OK,during,
+2026-08-09T16:59:13+00:00,1786294753336,306,133,OK,during,
+2026-08-09T16:59:13+00:00,1786294753982,307,632,OK,during,
+2026-08-09T16:59:15+00:00,1786294755127,308,133,OK,during,
+2026-08-09T16:59:15+00:00,1786294755776,309,187,OK,during,
+2026-08-09T16:59:16+00:00,1786294756485,310,165,OK,during,
+2026-08-09T16:59:17+00:00,1786294757167,311,165,OK,during,
+2026-08-09T16:59:17+00:00,1786294757847,312,156,OK,during,
+2026-08-09T16:59:18+00:00,1786294758521,313,139,OK,during,
+2026-08-09T16:59:19+00:00,1786294759175,314,161,OK,during,
+2026-08-09T16:59:19+00:00,1786294759853,315,125,OK,during,
+2026-08-09T16:59:20+00:00,1786294760489,316,120,OK,during,
+2026-08-09T16:59:21+00:00,1786294761121,317,126,OK,during,
+2026-08-09T16:59:21+00:00,1786294761760,318,140,OK,during,
+2026-08-09T16:59:22+00:00,1786294762413,319,126,OK,during,
+2026-08-09T16:59:23+00:00,1786294763053,320,128,OK,during,
+2026-08-09T16:59:23+00:00,1786294763695,321,144,OK,during,
+2026-08-09T16:59:24+00:00,1786294764353,322,123,OK,during,
+2026-08-09T16:59:24+00:00,1786294764989,323,119,OK,during,
+2026-08-09T16:59:25+00:00,1786294765621,324,121,OK,during,
+2026-08-09T16:59:26+00:00,1786294766256,325,121,OK,during,
+2026-08-09T16:59:26+00:00,1786294766890,326,132,OK,during,
+2026-08-09T16:59:27+00:00,1786294767536,327,120,OK,during,
+2026-08-09T16:59:28+00:00,1786294768170,328,129,OK,during,
+2026-08-09T16:59:28+00:00,1786294768812,329,124,OK,during,
+2026-08-09T16:59:29+00:00,1786294769448,330,128,OK,during,
+2026-08-09T16:59:30+00:00,1786294770091,331,142,OK,during,
+2026-08-09T16:59:30+00:00,1786294770751,332,134,OK,during,
+2026-08-09T16:59:31+00:00,1786294771398,333,117,OK,during,
+2026-08-09T16:59:32+00:00,1786294772028,334,128,OK,during,
+2026-08-09T16:59:32+00:00,1786294772674,335,135,OK,during,
+2026-08-09T16:59:33+00:00,1786294773322,336,116,OK,during,
+2026-08-09T16:59:33+00:00,1786294773953,337,120,OK,during,
+2026-08-09T16:59:34+00:00,1786294774586,338,111,OK,during,
+2026-08-09T16:59:35+00:00,1786294775211,339,120,OK,during,
+2026-08-09T16:59:35+00:00,1786294775843,340,117,OK,during,
+2026-08-09T16:59:36+00:00,1786294776474,341,130,OK,during,
+2026-08-09T16:59:37+00:00,1786294777118,342,115,OK,during,
+2026-08-09T16:59:37+00:00,1786294777745,343,115,OK,during,
+2026-08-09T16:59:38+00:00,1786294778372,344,113,OK,during,
+2026-08-09T16:59:38+00:00,1786294778997,345,113,OK,during,
+2026-08-09T16:59:39+00:00,1786294779623,346,118,OK,during,
+2026-08-09T16:59:40+00:00,1786294780256,347,1947,OK,during,
+2026-08-09T16:59:42+00:00,1786294782717,348,114,OK,during,
+2026-08-09T16:59:43+00:00,1786294783345,349,113,OK,during,
+2026-08-09T16:59:43+00:00,1786294783972,350,114,OK,during,
+2026-08-09T16:59:44+00:00,1786294784605,351,119,OK,during,
+2026-08-09T16:59:45+00:00,1786294785238,352,108,OK,during,
+2026-08-09T16:59:45+00:00,1786294785859,353,110,OK,during,
+2026-08-09T16:59:46+00:00,1786294786483,354,113,OK,during,
+2026-08-09T16:59:47+00:00,1786294787110,355,130,OK,during,
+2026-08-09T16:59:47+00:00,1786294787756,356,119,OK,during,
+2026-08-09T16:59:48+00:00,1786294788390,357,121,OK,during,
+2026-08-09T16:59:49+00:00,1786294789025,358,110,OK,during,
+2026-08-09T16:59:49+00:00,1786294789653,359,348,OK,during,
+2026-08-09T16:59:50+00:00,1786294790514,360,126,OK,during,
+2026-08-09T16:59:51+00:00,1786294791153,361,115,OK,during,
+2026-08-09T16:59:51+00:00,1786294791779,362,115,OK,during,
+2026-08-09T16:59:52+00:00,1786294792407,363,112,OK,during,
+2026-08-09T16:59:53+00:00,1786294793032,364,116,OK,during,
+2026-08-09T16:59:53+00:00,1786294793660,365,112,OK,during,
+2026-08-09T16:59:54+00:00,1786294794284,366,116,OK,during,
+2026-08-09T16:59:54+00:00,1786294794911,367,111,OK,during,
+2026-08-09T16:59:55+00:00,1786294795534,368,117,OK,during,
+2026-08-09T16:59:56+00:00,1786294796164,369,115,OK,during,
+2026-08-09T16:59:56+00:00,1786294796790,370,113,OK,during,
+2026-08-09T16:59:57+00:00,1786294797414,371,114,OK,during,
+2026-08-09T16:59:58+00:00,1786294798040,372,116,OK,during,
+2026-08-09T16:59:58+00:00,1786294798669,373,112,OK,during,
+2026-08-09T16:59:59+00:00,1786294799293,374,111,OK,during,
+2026-08-09T16:59:59+00:00,1786294799917,375,113,OK,during,
+2026-08-09T17:00:00+00:00,1786294800542,376,120,OK,during,
+2026-08-09T17:00:01+00:00,1786294801174,377,115,OK,during,
+2026-08-09T17:00:01+00:00,1786294801802,378,129,OK,during,
+2026-08-09T17:00:02+00:00,1786294802444,379,112,OK,during,
+2026-08-09T17:00:03+00:00,1786294803067,380,112,OK,during,
+2026-08-09T17:00:03+00:00,1786294803692,381,113,OK,during,
+2026-08-09T17:00:04+00:00,1786294804317,382,135,OK,during,
+2026-08-09T17:00:04+00:00,1786294804965,383,115,OK,during,
+2026-08-09T17:00:05+00:00,1786294805592,384,117,OK,during,
+2026-08-09T17:00:06+00:00,1786294806221,385,117,OK,during,
+2026-08-09T17:00:06+00:00,1786294806850,386,121,OK,during,
+2026-08-09T17:00:07+00:00,1786294807484,387,112,OK,during,
+2026-08-09T17:00:08+00:00,1786294808107,388,112,OK,during,
+2026-08-09T17:00:08+00:00,1786294808732,389,115,OK,during,
+2026-08-09T17:00:09+00:00,1786294809359,390,126,OK,during,
+2026-08-09T17:00:09+00:00,1786294809997,391,113,OK,during,
+2026-08-09T17:00:10+00:00,1786294810623,392,114,OK,during,
+2026-08-09T17:00:11+00:00,1786294811251,393,1195,OK,during,
+2026-08-09T17:00:12+00:00,1786294812958,394,115,OK,during,
+2026-08-09T17:00:13+00:00,1786294813585,395,114,OK,during,
+2026-08-09T17:00:14+00:00,1786294814211,396,111,OK,during,
+2026-08-09T17:00:14+00:00,1786294814834,397,113,OK,during,
+2026-08-09T17:00:15+00:00,1786294815460,398,113,OK,during,
+2026-08-09T17:00:16+00:00,1786294816086,399,113,OK,after,
+2026-08-09T17:00:16+00:00,1786294816711,400,114,OK,after,
+2026-08-09T17:00:17+00:00,1786294817338,401,130,OK,after,
+2026-08-09T17:00:17+00:00,1786294817982,402,119,OK,after,
+2026-08-09T17:00:18+00:00,1786294818613,403,118,OK,after,
+2026-08-09T17:00:19+00:00,1786294819242,404,116,OK,after,
+2026-08-09T17:00:19+00:00,1786294819870,405,116,OK,after,
+2026-08-09T17:00:20+00:00,1786294820497,406,148,OK,after,
+2026-08-09T17:00:21+00:00,1786294821158,407,120,OK,after,
+2026-08-09T17:00:21+00:00,1786294821791,408,119,OK,after,
+2026-08-09T17:00:22+00:00,1786294822423,409,115,OK,after,
+2026-08-09T17:00:23+00:00,1786294823050,410,114,OK,after,
+2026-08-09T17:00:23+00:00,1786294823675,411,111,OK,after,
+2026-08-09T17:00:24+00:00,1786294824298,412,114,OK,after,
+2026-08-09T17:00:24+00:00,1786294824925,413,113,OK,after,
+2026-08-09T17:00:25+00:00,1786294825552,414,115,OK,after,
+2026-08-09T17:00:26+00:00,1786294826179,415,110,OK,after,
+2026-08-09T17:00:26+00:00,1786294826802,416,112,OK,after,
+2026-08-09T17:00:27+00:00,1786294827427,417,116,OK,after,
+2026-08-09T17:00:28+00:00,1786294828056,418,114,OK,after,
+2026-08-09T17:00:28+00:00,1786294828683,419,112,OK,after,
+2026-08-09T17:00:29+00:00,1786294829307,420,114,OK,after,
+2026-08-09T17:00:29+00:00,1786294829934,421,109,OK,after,
+2026-08-09T17:00:30+00:00,1786294830555,422,114,OK,after,
+2026-08-09T17:00:31+00:00,1786294831181,423,113,OK,after,
+2026-08-09T17:00:31+00:00,1786294831807,424,761,OK,after,
+2026-08-09T17:00:33+00:00,1786294833080,425,115,OK,after,
+2026-08-09T17:00:33+00:00,1786294833708,426,119,OK,after,
+2026-08-09T17:00:34+00:00,1786294834341,427,125,OK,after,
+2026-08-09T17:00:34+00:00,1786294834979,428,121,OK,after,
+2026-08-09T17:00:35+00:00,1786294835613,429,122,OK,after,
+2026-08-09T17:00:36+00:00,1786294836248,430,122,OK,after,
+2026-08-09T17:00:36+00:00,1786294836882,431,114,OK,after,
+2026-08-09T17:00:37+00:00,1786294837508,432,116,OK,after,
+2026-08-09T17:00:38+00:00,1786294838137,433,203,OK,after,
+2026-08-09T17:00:38+00:00,1786294838853,434,117,OK,after,
+2026-08-09T17:00:39+00:00,1786294839482,435,135,OK,after,
+2026-08-09T17:00:40+00:00,1786294840131,436,115,OK,after,
+2026-08-09T17:00:40+00:00,1786294840758,437,113,OK,after,
+2026-08-09T17:00:41+00:00,1786294841383,438,115,OK,after,
+2026-08-09T17:00:42+00:00,1786294842010,439,865,OK,after,
+2026-08-09T17:00:43+00:00,1786294843387,440,114,OK,after,
+2026-08-09T17:00:44+00:00,1786294844013,441,123,OK,after,
+2026-08-09T17:00:44+00:00,1786294844648,442,117,OK,after,
+2026-08-09T17:00:45+00:00,1786294845279,443,127,OK,after,

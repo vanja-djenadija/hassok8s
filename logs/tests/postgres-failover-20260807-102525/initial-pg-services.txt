@@ -1,0 +1,3 @@
+keycloak-postgres-r        ClusterIP   10.152.183.82    <none>        5432/TCP            25h
+keycloak-postgres-ro       ClusterIP   10.152.183.164   <none>        5432/TCP            25h
+keycloak-postgres-rw       ClusterIP   10.152.183.52    <none>        5432/TCP            25h

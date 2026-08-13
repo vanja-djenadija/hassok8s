@@ -1,0 +1,17 @@
+timestamp,event,details
+2026-08-07T10:25:25+00:00,test_started,run_id=20260807-102525
+2026-08-07T10:25:40+00:00,preflight_passed,
+2026-08-07T10:25:43+00:00,initial_primary_detected,pod=keycloak-postgres-1;node=n01
+2026-08-07T10:25:44+00:00,test_table_prepared,table=ha_failover_probe
+2026-08-07T10:26:06+00:00,writer_started,pod=pg-failover-writer-20260807-102525;node=n01
+2026-08-07T10:26:06+00:00,writer_on_primary_node,writer_node=n01;primary_node=n01
+2026-08-07T10:26:06+00:00,baseline_started,seconds=20
+2026-08-07T10:26:32+00:00,baseline_finished,total=8;fails=0
+2026-08-07T10:26:32+00:00,baseline_latency,p50_ms=112;p95_ms=119;max_ms=129
+2026-08-07T10:26:33+00:00,failure_injected,deleted_primary=keycloak-postgres-1;node=n01
+2026-08-07T10:30:53+00:00,new_primary_detected,pod=keycloak-postgres-2;node=n00
+2026-08-07T10:31:05+00:00,cluster_recovery_completed,seconds=271.913
+2026-08-07T10:32:51+00:00,post_recovery_observation_started,seconds=20
+2026-08-07T10:34:01+00:00,post_recovery_observation_finished,
+2026-08-07T10:34:35+00:00,committed_rows_verified,successful_writes=205;committed_rows=253;result=fail
+2026-08-07T10:34:35+00:00,test_finished,run_valid=false;downtime=258.024;data_loss=fail

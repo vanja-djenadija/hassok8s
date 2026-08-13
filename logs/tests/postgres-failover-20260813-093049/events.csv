@@ -1,0 +1,17 @@
+timestamp,event,details
+2026-08-13T09:30:49+00:00,test_started,run_id=20260813-093049
+2026-08-13T09:31:07+00:00,preflight_passed,
+2026-08-13T09:31:09+00:00,initial_primary_detected,pod=keycloak-postgres-3;node=n02
+2026-08-13T09:31:11+00:00,test_table_prepared,table=ha_failover_probe
+2026-08-13T09:31:13+00:00,writer_started,pod=pg-failover-writer-20260813-093049;node=n01
+2026-08-13T09:31:13+00:00,baseline_started,seconds=20
+2026-08-13T09:31:34+00:00,baseline_finished,total=33;fails=0
+2026-08-13T09:31:34+00:00,baseline_latency,p50_ms=109;p95_ms=118;max_ms=722
+2026-08-13T09:31:40+00:00,failure_injected,deleted_primary=keycloak-postgres-3;node=n02
+2026-08-13T09:35:06+00:00,new_primary_detected,pod=keycloak-postgres-2;node=n00
+2026-08-13T09:35:28+00:00,cluster_recovery_completed,seconds=228.779
+2026-08-13T09:35:47+00:00,post_recovery_observation_started,seconds=20
+2026-08-13T09:36:07+00:00,writer_stop_requested,pod=pg-failover-writer-20260813-093049
+2026-08-13T09:36:19+00:00,post_recovery_observation_finished,
+2026-08-13T09:36:23+00:00,committed_rows_verified,successful_writes=137;committed_rows=137;distinct_seq=137;data_loss=pass;measurement=exact_match
+2026-08-13T09:36:23+00:00,test_finished,run_valid=true;downtime=205.891;data_loss=pass;measurement=exact_match
