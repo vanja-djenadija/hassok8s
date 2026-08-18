@@ -8,3 +8,4 @@ kubeconfig
 .vscode/
 .idea/
 *.swp
+logs/tests.zip
