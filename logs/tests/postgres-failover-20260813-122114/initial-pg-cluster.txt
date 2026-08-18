@@ -1,0 +1,2 @@
+NAME                AGE    INSTANCES   READY   STATUS                     PRIMARY
+keycloak-postgres   7d3h   3           3       Cluster in healthy state   keycloak-postgres-1

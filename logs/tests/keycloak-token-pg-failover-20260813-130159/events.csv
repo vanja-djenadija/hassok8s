@@ -1,0 +1,10 @@
+timestamp,event,details
+2026-08-13T13:02:16+00:00,preflight_passed,
+2026-08-13T13:02:18+00:00,initial_primary_detected,pod=keycloak-postgres-3;node=n02
+2026-08-13T13:02:18+00:00,baseline_started,seconds=20
+2026-08-13T13:02:39+00:00,baseline_finished,total=15;fails=0
+2026-08-13T13:02:39+00:00,failure_injected,deleted_primary=keycloak-postgres-3;node=n02
+2026-08-13T13:06:10+00:00,new_primary_detected,pod=keycloak-postgres-2;node=n00
+2026-08-13T13:06:30+00:00,cluster_recovery_completed,seconds=231.251
+2026-08-13T13:06:30+00:00,post_recovery_observation_started,seconds=60
+2026-08-13T13:07:30+00:00,post_recovery_observation_finished,

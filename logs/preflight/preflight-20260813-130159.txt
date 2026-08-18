@@ -1,0 +1,122 @@
+
+------------------------------------------------------------
+HA SSO preflight check
+------------------------------------------------------------
+Timestamp: 20260813-130159
+Namespace: keycloak
+Expected nodes: 3
+Expected Keycloak pods: 3
+Expected PostgreSQL pods: 3
+
+------------------------------------------------------------
+1. Kubernetes nodes
+------------------------------------------------------------
+NAME   STATUS   ROLES    AGE    VERSION    INTERNAL-IP     EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+n00    Ready    <none>   7d4h   v1.29.15   78.28.135.130   <none>        Ubuntu 24.04.3 LTS   6.8.0-137-generic   containerd://1.6.28
+n01    Ready    <none>   7d4h   v1.29.15   78.28.135.131   <none>        Ubuntu 24.04.3 LTS   6.8.0-134-generic   containerd://1.6.28
+n02    Ready    <none>   7d4h   v1.29.15   78.28.135.132   <none>        Ubuntu 24.04.3 LTS   6.8.0-137-generic   containerd://1.6.28
+==> Ready nodes: 3/3
+
+------------------------------------------------------------
+2. Namespace resources
+------------------------------------------------------------
+NAME                                     READY   STATUS      RESTARTS        AGE
+pod/keycloak-operator-5859445dbd-p4m2f   1/1     Running     2 (3d1h ago)    3d1h
+pod/keycloak-postgres-1                  1/1     Running     0               39m
+pod/keycloak-postgres-2                  1/1     Running     0               6m37s
+pod/keycloak-postgres-3                  1/1     Running     0               135m
+pod/keycloak-unibl-0                     1/1     Running     21 (160m ago)   6d4h
+pod/keycloak-unibl-1                     1/1     Running     3 (27h ago)     3d1h
+pod/keycloak-unibl-2                     1/1     Running     0               3d
+pod/realm-import-dhd59                   0/1     Completed   0               7d3h
+
+NAME                               TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)             AGE
+service/keycloak-operator          ClusterIP   10.152.183.192   <none>        80/TCP              7d3h
+service/keycloak-postgres-r        ClusterIP   10.152.183.82    <none>        5432/TCP            7d3h
+service/keycloak-postgres-ro       ClusterIP   10.152.183.164   <none>        5432/TCP            7d3h
+service/keycloak-postgres-rw       ClusterIP   10.152.183.52    <none>        5432/TCP            7d3h
+service/keycloak-unibl-discovery   ClusterIP   None             <none>        7800/TCP            7d3h
+service/keycloak-unibl-service     ClusterIP   10.152.183.63    <none>        8443/TCP,9000/TCP   7d3h
+
+NAME                                READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/keycloak-operator   1/1     1            1           7d3h
+
+NAME                                           DESIRED   CURRENT   READY   AGE
+replicaset.apps/keycloak-operator-5859445dbd   1         1         1       7d3h
+
+NAME                              READY   AGE
+statefulset.apps/keycloak-unibl   3/3     7d3h
+
+NAME                     COMPLETIONS   DURATION   AGE
+job.batch/realm-import   1/1           85s        7d3h
+==> No Pending/CrashLoopBackOff/ImagePullBackOff/Error pods found.
+
+------------------------------------------------------------
+3. PostgreSQL cluster state
+------------------------------------------------------------
+NAME                AGE    INSTANCES   READY   STATUS                     PRIMARY
+keycloak-postgres   7d3h   3           3       Cluster in healthy state   keycloak-postgres-3
+NAME                  READY   STATUS    RESTARTS   AGE     IP            NODE   NOMINATED NODE   READINESS GATES   ROLE
+keycloak-postgres-1   1/1     Running   0          39m     10.1.77.60    n01    <none>           <none>            replica
+keycloak-postgres-2   1/1     Running   0          6m39s   10.1.79.90    n00    <none>           <none>            replica
+keycloak-postgres-3   1/1     Running   0          135m    10.1.32.228   n02    <none>           <none>            primary
+==> CNPG phase: Cluster in healthy state
+==> CNPG ready instances: 3/3
+==> PostgreSQL pods: total=3, ready=3, unique_nodes=3
+==> Current PostgreSQL primary: keycloak-postgres-3
+
+------------------------------------------------------------
+4. Keycloak cluster state
+------------------------------------------------------------
+NAME             AGE
+keycloak-unibl   7d3h
+NAME               READY   STATUS    RESTARTS        AGE    IP            NODE   NOMINATED NODE   READINESS GATES
+keycloak-unibl-0   1/1     Running   21 (160m ago)   6d4h   10.1.77.40    n01    <none>           <none>
+keycloak-unibl-1   1/1     Running   3 (27h ago)     3d1h   10.1.79.81    n00    <none>           <none>
+keycloak-unibl-2   1/1     Running   0               3d     10.1.32.211   n02    <none>           <none>
+==> Keycloak Ready condition: True
+==> Keycloak pods: total=3, ready=3, unique_nodes=3
+
+------------------------------------------------------------
+4a. Keycloak restart stability
+------------------------------------------------------------
+Pod=keycloak-unibl-0, restarts=21, last_terminated=2026-08-13T10:21:28Z
+Last restart age for keycloak-unibl-0: 9640s
+Pod=keycloak-unibl-1, restarts=3, last_terminated=2026-08-12T09:57:23Z
+Last restart age for keycloak-unibl-1: 97485s
+Pod=keycloak-unibl-2, restarts=0, last_terminated=none
+==> No recent Keycloak restarts detected within the minimum stability window.
+
+------------------------------------------------------------
+5. Services and Ingress
+------------------------------------------------------------
+NAME                       TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)             AGE
+keycloak-operator          ClusterIP   10.152.183.192   <none>        80/TCP              7d3h
+keycloak-postgres-r        ClusterIP   10.152.183.82    <none>        5432/TCP            7d3h
+keycloak-postgres-ro       ClusterIP   10.152.183.164   <none>        5432/TCP            7d3h
+keycloak-postgres-rw       ClusterIP   10.152.183.52    <none>        5432/TCP            7d3h
+keycloak-unibl-discovery   ClusterIP   None             <none>        7800/TCP            7d3h
+keycloak-unibl-service     ClusterIP   10.152.183.63    <none>        8443/TCP,9000/TCP   7d3h
+NAME               CLASS    HOSTS            ADDRESS     PORTS     AGE
+keycloak-ingress   public   auth.etfbl.net   127.0.0.1   80, 443   7d3h
+==> Required services and ingress exist.
+
+------------------------------------------------------------
+6. Realm endpoint check
+------------------------------------------------------------
+Realm discovery check result: 200 0.028111
+==> Realm discovery endpoint returned HTTP 200.
+
+------------------------------------------------------------
+7. PVC and storage snapshot
+------------------------------------------------------------
+NAME                  STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS        VOLUMEATTRIBUTESCLASS   AGE
+keycloak-postgres-1   Bound    pvc-53a3bd2a-fc8b-4568-87a0-6d5d891e98c2   20Gi       RWO            microk8s-hostpath   <unset>                 7d3h
+keycloak-postgres-2   Bound    pvc-527f6a96-b330-490d-b3b7-f3fde7194012   20Gi       RWO            microk8s-hostpath   <unset>                 7d3h
+keycloak-postgres-3   Bound    pvc-32bd898c-5a47-4116-b9ac-56b89f5d39ab   20Gi       RWO            microk8s-hostpath   <unset>                 7d3h
+
+------------------------------------------------------------
+Preflight result
+------------------------------------------------------------
+Preflight PASSED.
+Report saved to: /home/vanja/hassok8s/logs/preflight/preflight-20260813-130159.txt
