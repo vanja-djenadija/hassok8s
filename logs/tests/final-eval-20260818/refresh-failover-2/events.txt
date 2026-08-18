@@ -1,0 +1,26 @@
+[INFO] Cluster state before test
+NAME                                 READY   STATUS      RESTARTS       AGE     IP            NODE   NOMINATED NODE   READINESS GATES
+keycloak-operator-5859445dbd-p4m2f   1/1     Running     2 (8d ago)     8d      10.1.79.83    n00    <none>           <none>
+keycloak-postgres-1                  1/1     Running     0              5d      10.1.77.60    n01    <none>           <none>
+keycloak-postgres-2                  1/1     Running     0              4d23h   10.1.79.90    n00    <none>           <none>
+keycloak-postgres-3                  1/1     Running     0              4d23h   10.1.32.235   n02    <none>           <none>
+keycloak-unibl-0                     1/1     Running     0              10m     10.1.77.61    n01    <none>           <none>
+keycloak-unibl-1                     1/1     Running     12 (8h ago)    8d      10.1.79.81    n00    <none>           <none>
+keycloak-unibl-2                     1/1     Running     15 (18h ago)   8d      10.1.32.211   n02    <none>           <none>
+realm-import-dhd59                   0/1     Completed   0              12d     <none>        n01    <none>           <none>
+[INFO] Getting initial tokens...
+[INFO] Initial refresh token obtained
+[INFO] Baseline refresh before deleting pod...
+[EVENT] 2026-08-18T12:35:13+00:00 deleting pod keycloak-unibl-1
+pod "keycloak-unibl-1" deleted
+[INFO] Refresh attempts after deleting pod...
+[INFO] Cluster state after test
+NAME                                 READY   STATUS      RESTARTS       AGE     IP            NODE   NOMINATED NODE   READINESS GATES
+keycloak-operator-5859445dbd-p4m2f   1/1     Running     2 (8d ago)     8d      10.1.79.83    n00    <none>           <none>
+keycloak-postgres-1                  1/1     Running     0              5d      10.1.77.60    n01    <none>           <none>
+keycloak-postgres-2                  1/1     Running     0              4d23h   10.1.79.90    n00    <none>           <none>
+keycloak-postgres-3                  1/1     Running     0              4d23h   10.1.32.235   n02    <none>           <none>
+keycloak-unibl-0                     1/1     Running     0              14m     10.1.77.61    n01    <none>           <none>
+keycloak-unibl-1                     1/1     Running     0              2m52s   10.1.79.91    n00    <none>           <none>
+keycloak-unibl-2                     1/1     Running     15 (18h ago)   8d      10.1.32.211   n02    <none>           <none>
+realm-import-dhd59                   0/1     Completed   0              12d     <none>        n01    <none>           <none>

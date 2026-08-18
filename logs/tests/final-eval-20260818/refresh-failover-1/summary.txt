@@ -1,0 +1,15 @@
+test=keycloak_refresh_failover
+victim_pod=keycloak-unibl-0
+total_requests=130
+successful_requests=130
+failed_requests=0
+availability_percent=100.000
+post_delete_requests=120
+post_delete_successful=120
+post_delete_failed=0
+post_delete_availability_percent=100.000
+estimated_refresh_interruption_s=0.000
+avg_response_time_s=0.322587
+median_response_time_s=0.258373
+p95_response_time_s=0.333551
+max_response_time_s=3.558754
