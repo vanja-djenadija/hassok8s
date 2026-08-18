@@ -1,0 +1,10 @@
+test=baseline_token
+total_requests=300
+successful_requests=300
+failed_requests=0
+availability_percent=100.000
+min_response_time_s=0.248127
+avg_response_time_s=0.429682
+median_response_time_s=0.339440
+p95_response_time_s=0.376560
+max_response_time_s=11.158611
