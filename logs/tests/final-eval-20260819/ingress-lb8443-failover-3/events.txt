@@ -1,0 +1,32 @@
+[INFO] Cluster state before test
+NAME                                      READY   STATUS    RESTARTS   AGE     IP            NODE   NOMINATED NODE   READINESS GATES
+nginx-ingress-microk8s-controller-d7bm2   1/1     Running   0          7m44s   10.1.79.93    n00    <none>           <none>
+nginx-ingress-microk8s-controller-fxr6b   1/1     Running   0          66m     10.1.77.62    n01    <none>           <none>
+nginx-ingress-microk8s-controller-z5k5h   1/1     Running   0          13m     10.1.32.241   n02    <none>           <none>
+NAME                                 READY   STATUS      RESTARTS      AGE     IP            NODE   NOMINATED NODE   READINESS GATES
+keycloak-operator-5859445dbd-p4m2f   1/1     Running     2 (8d ago)    8d      10.1.79.83    n00    <none>           <none>
+keycloak-postgres-1                  1/1     Running     0             5d20h   10.1.77.60    n01    <none>           <none>
+keycloak-postgres-2                  1/1     Running     0             5d20h   10.1.79.90    n00    <none>           <none>
+keycloak-postgres-3                  1/1     Running     0             5d20h   10.1.32.235   n02    <none>           <none>
+keycloak-unibl-0                     1/1     Running     4 (20m ago)   20h     10.1.77.61    n01    <none>           <none>
+keycloak-unibl-1                     1/1     Running     2 (13h ago)   20h     10.1.79.91    n00    <none>           <none>
+keycloak-unibl-2                     1/1     Running     3 (13h ago)   20h     10.1.32.236   n02    <none>           <none>
+realm-import-dhd59                   0/1     Completed   0             12d     <none>        n01    <none>           <none>
+[INFO] Baseline requests before deleting ingress pod...
+[EVENT] 2026-08-19T09:21:10+00:00 deleting ingress pod nginx-ingress-microk8s-controller-fxr6b
+pod "nginx-ingress-microk8s-controller-fxr6b" deleted
+[INFO] Requests after deleting ingress pod...
+[INFO] Cluster state after test
+NAME                                      READY   STATUS    RESTARTS   AGE     IP            NODE   NOMINATED NODE   READINESS GATES
+nginx-ingress-microk8s-controller-d7bm2   1/1     Running   0          11m     10.1.79.93    n00    <none>           <none>
+nginx-ingress-microk8s-controller-qkh58   1/1     Running   0          3m18s   10.1.77.63    n01    <none>           <none>
+nginx-ingress-microk8s-controller-z5k5h   1/1     Running   0          18m     10.1.32.241   n02    <none>           <none>
+NAME                                 READY   STATUS      RESTARTS      AGE     IP            NODE   NOMINATED NODE   READINESS GATES
+keycloak-operator-5859445dbd-p4m2f   1/1     Running     2 (8d ago)    8d      10.1.79.83    n00    <none>           <none>
+keycloak-postgres-1                  1/1     Running     0             5d21h   10.1.77.60    n01    <none>           <none>
+keycloak-postgres-2                  1/1     Running     0             5d20h   10.1.79.90    n00    <none>           <none>
+keycloak-postgres-3                  1/1     Running     0             5d20h   10.1.32.235   n02    <none>           <none>
+keycloak-unibl-0                     1/1     Running     4 (24m ago)   21h     10.1.77.61    n01    <none>           <none>
+keycloak-unibl-1                     1/1     Running     2 (13h ago)   20h     10.1.79.91    n00    <none>           <none>
+keycloak-unibl-2                     1/1     Running     3 (13h ago)   20h     10.1.32.236   n02    <none>           <none>
+realm-import-dhd59                   0/1     Completed   0             12d     <none>        n01    <none>           <none>
