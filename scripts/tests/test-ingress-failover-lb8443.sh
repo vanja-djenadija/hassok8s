@@ -34,7 +34,6 @@ for i in $(seq 1 "$PRE_REQUESTS"); do
   TS="$(date -Iseconds)"
 
   LINE="$(curl -k -s -o /dev/null \
-    --resolve auth.etfbl.net:8443:127.0.0.1 \
     -w "%{http_code},%{time_total}" \
     "$URL" || echo "000,0")"
 
@@ -62,7 +61,6 @@ for i in $(seq 1 "$POST_REQUESTS"); do
   SEQ=$((PRE_REQUESTS + i))
 
   LINE="$(curl -k -s -o /dev/null \
-    --resolve auth.etfbl.net:8443:127.0.0.1 \
     -w "%{http_code},%{time_total}" \
     "$URL" || echo "000,0")"
 

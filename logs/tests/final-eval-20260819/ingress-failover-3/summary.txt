@@ -1,0 +1,17 @@
+test=ingress_failover
+victim_pod=nginx-ingress-microk8s-controller-6ckd4
+total_requests=190
+successful_requests=190
+failed_requests=0
+availability_percent=100.000
+post_delete_requests=180
+post_delete_successful=180
+post_delete_failed=0
+post_delete_availability_percent=100.000
+estimated_interruption_s=0.000
+min_response_time_s=0.223338
+avg_response_time_s=0.307445
+median_response_time_s=0.239879
+p95_response_time_s=0.526902
+max_response_time_s=1.530255
+status_codes={'200': 190}

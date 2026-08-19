@@ -1,0 +1,17 @@
+test=ingress_failover
+victim_pod=nginx-ingress-microk8s-controller-58h5m
+total_requests=190
+successful_requests=173
+failed_requests=17
+availability_percent=91.053
+post_delete_requests=180
+post_delete_successful=163
+post_delete_failed=17
+post_delete_availability_percent=90.556
+estimated_interruption_s=17.000
+min_response_time_s=0.223787
+avg_response_time_s=0.280255
+median_response_time_s=0.239231
+p95_response_time_s=0.284518
+max_response_time_s=6.083554
+status_codes={'200': 173, '000': 15, '503': 2}
