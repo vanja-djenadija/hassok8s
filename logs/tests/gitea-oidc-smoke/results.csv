@@ -1,0 +1,11 @@
+timestamp,iteration,phase,check_type,success,duration_s,http_status,final_url,error
+2026-08-20T07:35:57,1,pre_delete,new_login,1,2.268656,200,http://gitea-ha.etfbl.net/user/settings,
+2026-08-20T07:35:57,1,pre_delete,existing_session,1,0.157200,200,http://gitea-ha.etfbl.net/user/settings,
+2026-08-20T07:36:01,2,pre_delete,new_login,1,2.838649,200,http://gitea-ha.etfbl.net/user/settings,
+2026-08-20T07:36:01,2,pre_delete,existing_session,1,0.157354,200,http://gitea-ha.etfbl.net/user/settings,
+2026-08-20T07:36:04,3,post_delete,new_login,1,1.438020,200,http://gitea-ha.etfbl.net/user/settings,
+2026-08-20T07:36:04,3,post_delete,existing_session,1,0.157845,200,http://gitea-ha.etfbl.net/user/settings,
+2026-08-20T07:36:06,4,post_delete,new_login,1,1.179083,200,http://gitea-ha.etfbl.net/user/settings,
+2026-08-20T07:36:06,4,post_delete,existing_session,1,0.158347,200,http://gitea-ha.etfbl.net/user/settings,
+2026-08-20T07:36:08,5,post_delete,new_login,1,1.157975,200,http://gitea-ha.etfbl.net/user/settings,
+2026-08-20T07:36:09,5,post_delete,existing_session,1,0.157881,200,http://gitea-ha.etfbl.net/user/settings,
