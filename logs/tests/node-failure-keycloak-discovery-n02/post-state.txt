@@ -1,0 +1,52 @@
+=== Timestamp ===
+2026-08-20T12:42:07+00:00
+
+=== Nodes ===
+NAME   STATUS   ROLES    AGE   VERSION    INTERNAL-IP     EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+n00    Ready    <none>   14d   v1.29.15   78.28.135.130   <none>        Ubuntu 24.04.3 LTS   6.8.0-137-generic   containerd://1.6.28
+n01    Ready    <none>   14d   v1.29.15   78.28.135.131   <none>        Ubuntu 24.04.3 LTS   6.8.0-134-generic   containerd://1.6.28
+n02    Ready    <none>   14d   v1.29.15   78.28.135.132   <none>        Ubuntu 24.04.3 LTS   6.8.0-137-generic   containerd://1.6.28
+
+=== CNPG cluster ===
+NAME                AGE   INSTANCES   READY   STATUS                                       PRIMARY
+keycloak-postgres   14d   3           2       Waiting for the instances to become active   keycloak-postgres-2
+
+=== PostgreSQL pods ===
+keycloak-postgres-1                  1/1     Running       0             7d      10.1.77.60   n01    <none>           <none>
+keycloak-postgres-2                  1/1     Running       0             6d23h   10.1.79.90   n00    <none>           <none>
+keycloak-postgres-3                  0/1     Terminating   0             6d23h   <none>       n02    <none>           <none>
+
+=== Keycloak pods ===
+keycloak-unibl-0                     1/1     Running     2 (27m ago)   113m    10.1.77.14   n01      <none>           <none>
+keycloak-unibl-1                     1/1     Running     1 (27m ago)   107m    10.1.79.98   n00      <none>           <none>
+keycloak-unibl-2                     0/1     Pending     0             0s      <none>       <none>   <none>           <none>
+
+=== Ingress pods ===
+NAME                                      READY   STATUS    RESTARTS   AGE   IP           NODE   NOMINATED NODE   READINESS GATES
+nginx-ingress-microk8s-controller-8dzz4   0/1     Unknown   0          27h   <none>       n02    <none>           <none>
+nginx-ingress-microk8s-controller-d7bm2   1/1     Running   0          27h   10.1.79.93   n00    <none>           <none>
+nginx-ingress-microk8s-controller-qkh58   1/1     Running   0          27h   10.1.77.63   n01    <none>           <none>
+
+=== Keycloak services ===
+NAME                       TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)             AGE
+keycloak-operator          ClusterIP   10.152.183.192   <none>        80/TCP              14d
+keycloak-postgres-r        ClusterIP   10.152.183.82    <none>        5432/TCP            14d
+keycloak-postgres-ro       ClusterIP   10.152.183.164   <none>        5432/TCP            14d
+keycloak-postgres-rw       ClusterIP   10.152.183.52    <none>        5432/TCP            14d
+keycloak-unibl-discovery   ClusterIP   None             <none>        7800/TCP            14d
+keycloak-unibl-service     ClusterIP   10.152.183.63    <none>        8443/TCP,9000/TCP   14d
+
+=== StorageClass ===
+NAME                          PROVISIONER            RECLAIMPOLICY   VOLUMEBINDINGMODE      ALLOWVOLUMEEXPANSION   AGE
+microk8s-hostpath (default)   microk8s.io/hostpath   Delete          WaitForFirstConsumer   false                  14d
+
+=== PVCs ===
+NAMESPACE   NAME                                      STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS        VOLUMEATTRIBUTESCLASS   AGE
+gitea       data-gitea-test-postgresql-0              Bound    pvc-a2b7da42-7050-4163-8975-4fece930f86d   8Gi        RWO            microk8s-hostpath   <unset>                 21h
+gitea       gitea-shared-storage                      Bound    pvc-28aa9a3f-86d9-4e7d-a3bd-eabade964735   8Gi        RWO            microk8s-hostpath   <unset>                 21h
+gitea       valkey-data-gitea-test-valkey-cluster-0   Bound    pvc-651633c2-f6f4-4320-85df-f5ca95f40765   8Gi        RWO            microk8s-hostpath   <unset>                 21h
+gitea       valkey-data-gitea-test-valkey-cluster-1   Bound    pvc-7c12f73e-f7cf-4791-b8fa-5bd05c1e1fd1   8Gi        RWO            microk8s-hostpath   <unset>                 21h
+gitea       valkey-data-gitea-test-valkey-cluster-2   Bound    pvc-7457e3ed-cf0a-4073-88e2-88cbaeb38e71   8Gi        RWO            microk8s-hostpath   <unset>                 21h
+keycloak    keycloak-postgres-1                       Bound    pvc-53a3bd2a-fc8b-4568-87a0-6d5d891e98c2   20Gi       RWO            microk8s-hostpath   <unset>                 14d
+keycloak    keycloak-postgres-2                       Bound    pvc-527f6a96-b330-490d-b3b7-f3fde7194012   20Gi       RWO            microk8s-hostpath   <unset>                 14d
+keycloak    keycloak-postgres-3                       Bound    pvc-32bd898c-5a47-4116-b9ac-56b89f5d39ab   20Gi       RWO            microk8s-hostpath   <unset>                 14d
