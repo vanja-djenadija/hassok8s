@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Dopunski test otkaza jednog Kubernetes čvora koji nije domaćin PostgreSQL primary instance.
-# Test mjeri dostupnost Keycloak OIDC discovery endpointa preko eksternog HAProxy ulaza.
-
 FAILED_NODE_NAME="${FAILED_NODE_NAME:-n02}"
 FAILED_NODE_IP="${FAILED_NODE_IP:-78.28.135.132}"
-FAILED_NODE_SSH_USER="${FAILED_NODE_SSH_USER:-root}"
 
 NAMESPACE="${NAMESPACE:-keycloak}"
 CNPG_CLUSTER="${CNPG_CLUSTER:-keycloak-postgres}"
@@ -20,7 +16,7 @@ PRE_REQUESTS="${PRE_REQUESTS:-20}"
 POST_REQUESTS="${POST_REQUESTS:-220}"
 INTERVAL_SECONDS="${INTERVAL_SECONDS:-1}"
 
-OUTDIR="${OUTDIR:-logs/tests/node-failure-keycloak-discovery-${FAILED_NODE_NAME}-$(date +%Y%m%d-%H%M%S)}"
+OUTDIR="${OUTDIR:-logs/tests/node-failure-keycloak-discovery-${FAILED_NODE_NAME}-manual-$(date +%Y%m%d-%H%M%S)}"
 RESULTS_CSV="$OUTDIR/results.csv"
 SUMMARY_TXT="$OUTDIR/summary.txt"
 PRE_STATE="$OUTDIR/pre-state.txt"
@@ -130,36 +126,6 @@ measure_once() {
   echo "$ts,$phase,$code,$time_total,$success" | tee -a "$RESULTS_CSV"
 }
 
-stop_failed_node() {
-  log_event "stopping_microk8s_on_${FAILED_NODE_NAME}_${FAILED_NODE_IP}"
-  ssh -o BatchMode=yes -o ConnectTimeout=10 "${FAILED_NODE_SSH_USER}@${FAILED_NODE_IP}" "microk8s stop"
-  log_event "microk8s_stop_command_sent"
-}
-
-start_failed_node() {
-  log_event "starting_microk8s_on_${FAILED_NODE_NAME}_${FAILED_NODE_IP}"
-  ssh -o BatchMode=yes -o ConnectTimeout=10 "${FAILED_NODE_SSH_USER}@${FAILED_NODE_IP}" "microk8s start"
-  log_event "microk8s_start_command_sent"
-}
-
-wait_for_node_ready() {
-  log_event "waiting_for_${FAILED_NODE_NAME}_ready"
-
-  for i in $(seq 1 120); do
-    status="$(kubectl get node "$FAILED_NODE_NAME" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo "Unknown")"
-
-    if [[ "$status" == "True" ]]; then
-      log_event "${FAILED_NODE_NAME}_ready"
-      return 0
-    fi
-
-    sleep 5
-  done
-
-  log_event "warning_${FAILED_NODE_NAME}_not_ready_after_wait"
-  return 1
-}
-
 write_summary() {
   python3 - "$RESULTS_CSV" "$SUMMARY_TXT" "$FAILED_NODE_NAME" "$FAILED_NODE_IP" "$ENDPOINT_HOST" "$ENDPOINT_PORT" "$ENDPOINT_PATH" <<'PY'
 import csv
@@ -221,13 +187,13 @@ def summarize(subset):
     }
 
 lines = []
-lines.append("test=node_failure_keycloak_discovery")
+lines.append("test=node_failure_keycloak_discovery_manual")
 lines.append(f"failed_node={failed_node}")
 lines.append(f"failed_node_ip={failed_node_ip}")
 lines.append(f"endpoint=https://{endpoint_host}:{endpoint_port}{endpoint_path}")
 lines.append("entrypoint=external_haproxy_8443")
-lines.append("failure_type=microk8s_stop_on_single_non_primary_node")
-lines.append("note=This test validates public Keycloak endpoint availability during loss of one non-primary Kubernetes node. It is not a proof of production-grade stateful storage HA.")
+lines.append("failure_type=manual_microk8s_stop_on_single_non_primary_node")
+lines.append("note=The measurement, state capture and metric calculation were automated. The node failure and recovery were triggered manually by running microk8s stop/start on the selected node.")
 
 for label in ["all", "pre_failure", "post_failure"]:
     subset = rows if label == "all" else [r for r in rows if r["phase"] == label]
@@ -239,6 +205,24 @@ for label in ["all", "pre_failure", "post_failure"]:
 summary_path.write_text("\n".join(lines) + "\n")
 print(summary_path.read_text())
 PY
+}
+
+wait_for_node_ready() {
+  log_event "waiting_for_${FAILED_NODE_NAME}_ready"
+
+  for i in $(seq 1 120); do
+    status="$(kubectl get node "$FAILED_NODE_NAME" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo "Unknown")"
+
+    if [[ "$status" == "True" ]]; then
+      log_event "${FAILED_NODE_NAME}_ready"
+      return 0
+    fi
+
+    sleep 5
+  done
+
+  log_event "warning_${FAILED_NODE_NAME}_not_ready_after_wait"
+  return 1
 }
 
 log_event "test_started"
@@ -261,7 +245,20 @@ for i in $(seq 1 "$PRE_REQUESTS"); do
   sleep "$INTERVAL_SECONDS"
 done
 
-stop_failed_node
+echo
+echo "============================================================"
+echo "MANUAL ACTION REQUIRED"
+echo "Open another terminal, connect to $FAILED_NODE_NAME ($FAILED_NODE_IP), and run:"
+echo
+echo "  microk8s stop"
+echo
+echo "Wait a few seconds, then return here and press ENTER."
+echo "============================================================"
+echo
+
+log_event "waiting_for_manual_microk8s_stop"
+read -r -p "Press ENTER after microk8s stop has been executed on ${FAILED_NODE_NAME}: "
+log_event "manual_microk8s_stop_confirmed"
 
 log_event "saving_failure_state"
 run_state_snapshot "$FAILURE_STATE" || true
@@ -272,7 +269,21 @@ for i in $(seq 1 "$POST_REQUESTS"); do
   sleep "$INTERVAL_SECONDS"
 done
 
-start_failed_node
+echo
+echo "============================================================"
+echo "MANUAL RECOVERY REQUIRED"
+echo "Open another terminal, connect to $FAILED_NODE_NAME ($FAILED_NODE_IP), and run:"
+echo
+echo "  microk8s start"
+echo
+echo "Then return here and press ENTER."
+echo "============================================================"
+echo
+
+log_event "waiting_for_manual_microk8s_start"
+read -r -p "Press ENTER after microk8s start has been executed on ${FAILED_NODE_NAME}: "
+log_event "manual_microk8s_start_confirmed"
+
 wait_for_node_ready || true
 
 log_event "saving_post_state"
