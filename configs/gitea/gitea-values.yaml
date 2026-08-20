@@ -1,0 +1,47 @@
+gitea:
+  admin:
+    username: admin
+    password: "Admin12345!"
+    email: admin@example.com
+  config:
+    server:
+      DOMAIN: gitea-ha.etfbl.net
+      ROOT_URL: http://gitea-ha.etfbl.net/
+      PROTOCOL: http
+    service:
+      DISABLE_REGISTRATION: false
+      ALLOW_ONLY_EXTERNAL_REGISTRATION: true
+    openid:
+      ENABLE_OPENID_SIGNIN: true
+      ENABLE_OPENID_SIGNUP: true
+
+service:
+  http:
+    type: ClusterIP
+
+ingress:
+  enabled: true
+  className: public
+  hosts:
+    - host: gitea-ha.etfbl.net
+      paths:
+        - path: /
+          pathType: Prefix
+
+postgresql-ha:
+  enabled: false
+
+postgresql:
+  enabled: true
+  auth:
+    database: gitea
+    username: gitea
+    password: "GiteaDbPass12345!"
+    postgresPassword: "GiteaRootPass12345!"
+  primary:
+    persistence:
+      size: 8Gi
+
+persistence:
+  enabled: true
+  size: 8Gi

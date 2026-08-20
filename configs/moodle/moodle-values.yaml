@@ -1,0 +1,28 @@
+moodleUsername: admin
+moodlePassword: "Admin12345!"
+moodleEmail: admin@example.com
+moodleSiteName: "Test Moodle HA SSO"
+
+service:
+  type: ClusterIP
+
+ingress:
+  enabled: true
+  hostname: moodle-ha.etfbl.net
+  ingressClassName: public
+  tls: true
+
+persistence:
+  enabled: true
+  size: 8Gi
+
+mariadb:
+  enabled: false
+
+externalDatabase:
+  type: postgresql
+  host: moodle-postgres-postgresql.moodle.svc.cluster.local
+  port: 5432
+  user: moodle
+  password: "MoodleDbPass12345!"
+  database: moodle
